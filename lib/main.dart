@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quest/l10n/app_localizations.dart';
 
+import 'package:flutter_quest/core/services/haptic_service.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -23,13 +25,15 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('es'),
-      ],
-      home: const Scaffold(
-        body: Center(
-          child: Text('FocusQuest'),
+      supportedLocales: const [Locale('en'), Locale('es')],
+      home: Scaffold(
+        body: const Center(child: Text('FocusQuest')),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            // Sample usage of HapticService
+            HapticService().selectionClick();
+          },
+          child: const Icon(Icons.touch_app),
         ),
       ),
     );
