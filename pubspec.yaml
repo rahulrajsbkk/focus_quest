@@ -41,7 +41,7 @@ dependencies:
   firebase_core: ^4.3.0
   awesome_notifications: ^0.10.1
   lottie: ^3.3.2
-  flutter_haptic: ^0.0.3
+  flutter_vibrate: ^1.4.0
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
