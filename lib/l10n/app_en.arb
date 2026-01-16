@@ -1,0 +1,7 @@
+{
+    "@@locale": "en",
+    "appTitle": "FocusQuest",
+    "@appTitle": {
+        "description": "The application title"
+    }
+}
