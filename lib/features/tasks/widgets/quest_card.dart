@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quest/core/theme/app_colors.dart';
-import 'package:flutter_quest/models/quest.dart';
+import 'package:focus_quest/core/theme/app_colors.dart';
+import 'package:focus_quest/models/quest.dart';
 
 /// A card widget displaying a quest with its status, energy level, and
 /// category.

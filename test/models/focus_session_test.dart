@@ -1,5 +1,5 @@
-import 'package:flutter_quest/models/focus_session.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:focus_quest/models/focus_session.dart';
 
 void main() {
   group('FocusSession', () {

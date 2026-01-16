@@ -1,8 +1,8 @@
 // Basic smoke test for the FocusQuest app.
 
-import 'package:flutter_quest/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:focus_quest/main.dart';
 
 void main() {
   testWidgets('FocusQuest app loads successfully', (WidgetTester tester) async {

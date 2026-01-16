@@ -72,8 +72,8 @@ lib/providers/
 The theme is automatically applied through the `ThemeProvider` in `main.dart`:
 
 ```dart
-import 'package:flutter_quest/core/theme/app_theme.dart';
-import 'package:flutter_quest/providers/theme_provider.dart';
+import 'package:focus_quest/core/theme/app_theme.dart';
+import 'package:focus_quest/providers/theme_provider.dart';
 
 // In your widget:
 final themeMode = ref.watch(themeModeProvider);
@@ -105,7 +105,7 @@ Container(
 ### Direct Color Access
 
 ```dart
-import 'package:flutter_quest/core/theme/app_colors.dart';
+import 'package:focus_quest/core/theme/app_colors.dart';
 
 Container(
   color: AppColors.lightPrimary,
@@ -117,7 +117,7 @@ Container(
 ### Toggling Theme
 
 ```dart
-import 'package:flutter_quest/providers/theme_provider.dart';
+import 'package:focus_quest/providers/theme_provider.dart';
 
 // Toggle between light and dark
 ref.read(themeProvider.notifier).toggleTheme();

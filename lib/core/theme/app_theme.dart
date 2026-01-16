@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quest/core/theme/app_colors.dart';
+import 'package:focus_quest/core/theme/app_colors.dart';
 
 /// Theme definitions for FocusQuest app.
 ///

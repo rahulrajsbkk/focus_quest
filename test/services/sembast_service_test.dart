@@ -1,9 +1,9 @@
-import 'package:flutter_quest/models/focus_session.dart';
-import 'package:flutter_quest/models/quest.dart';
-import 'package:flutter_quest/models/sub_quest.dart';
-import 'package:flutter_quest/models/user_progress.dart';
-import 'package:flutter_quest/services/sembast_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:focus_quest/models/focus_session.dart';
+import 'package:focus_quest/models/quest.dart';
+import 'package:focus_quest/models/sub_quest.dart';
+import 'package:focus_quest/models/user_progress.dart';
+import 'package:focus_quest/services/sembast_service.dart';
 import 'package:sembast/sembast_memory.dart';
 
 void main() {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quest/core/services/haptic_service.dart';
-import 'package:flutter_quest/models/quest.dart';
+import 'package:focus_quest/core/services/haptic_service.dart';
+import 'package:focus_quest/models/quest.dart';
 
 /// Bottom sheet for adding or editing a quest.
 class AddQuestSheet extends StatefulWidget {

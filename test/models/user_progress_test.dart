@@ -1,5 +1,5 @@
-import 'package:flutter_quest/models/user_progress.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:focus_quest/models/user_progress.dart';
 
 void main() {
   group('XP and Level calculations', () {
