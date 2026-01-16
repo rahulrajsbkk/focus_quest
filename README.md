@@ -18,6 +18,7 @@ The project follows a local-first architecture where the local database (Sembast
 For a detailed breakdown of the system architecture, module breakdown, and technical stack, please refer to the:
 
 - [**High-Level Design (HLD) Plan**](hld.md)
+- [**Theme System Documentation**](lib/core/theme/theme.md)
 
 ## 📁 Folder Structure
 
