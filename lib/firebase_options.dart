@@ -64,7 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '417478724994',
     projectId: 'focusquest-d328c',
     storageBucket: 'focusquest-d328c.firebasestorage.app',
-    iosClientId: '417478724994-coe9dt66sgshed76t3bhanhq0mjecrcj.apps.googleusercontent.com',
+    iosClientId:
+        '417478724994-coe9dt66sgshed76t3bhanhq0mjecrcj.apps.googleusercontent.com',
     iosBundleId: 'me.rahulrajsb.focus',
   );
 
@@ -74,7 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '417478724994',
     projectId: 'focusquest-d328c',
     storageBucket: 'focusquest-d328c.firebasestorage.app',
-    iosClientId: '417478724994-coe9dt66sgshed76t3bhanhq0mjecrcj.apps.googleusercontent.com',
+    iosClientId:
+        '417478724994-coe9dt66sgshed76t3bhanhq0mjecrcj.apps.googleusercontent.com',
     iosBundleId: 'me.rahulrajsb.focus',
   );
 
