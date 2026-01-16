@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quest/providers/theme_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:focus_quest/providers/theme_provider.dart';
 
 /// A widget that allows users to toggle between light and dark themes.
 ///

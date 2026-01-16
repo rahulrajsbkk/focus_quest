@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_quest/core/theme/app_theme.dart';
-import 'package:flutter_quest/features/tasks/screens/home_screen.dart';
-import 'package:flutter_quest/l10n/app_localizations.dart';
-import 'package:flutter_quest/providers/theme_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:focus_quest/core/theme/app_theme.dart';
+import 'package:focus_quest/features/tasks/screens/home_screen.dart';
+import 'package:focus_quest/l10n/app_localizations.dart';
+import 'package:focus_quest/providers/theme_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

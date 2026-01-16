@@ -1,6 +1,6 @@
 {
-    "name": "flutter_quest",
-    "short_name": "flutter_quest",
+    "name": "Focus Quest",
+    "short_name": "Focus Quest",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

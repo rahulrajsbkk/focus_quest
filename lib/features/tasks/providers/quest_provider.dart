@@ -1,6 +1,6 @@
-import 'package:flutter_quest/models/quest.dart';
-import 'package:flutter_quest/services/sembast_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:focus_quest/models/quest.dart';
+import 'package:focus_quest/services/sembast_service.dart';
 import 'package:sembast/sembast.dart';
 
 /// State for the quest list

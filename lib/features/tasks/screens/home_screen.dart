@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quest/core/services/haptic_service.dart';
-import 'package:flutter_quest/core/widgets/theme_switcher.dart';
-import 'package:flutter_quest/features/tasks/providers/quest_provider.dart';
-import 'package:flutter_quest/features/tasks/widgets/add_quest_sheet.dart';
-import 'package:flutter_quest/features/tasks/widgets/quest_card.dart';
-import 'package:flutter_quest/models/quest.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:focus_quest/core/services/haptic_service.dart';
+import 'package:focus_quest/core/widgets/theme_switcher.dart';
+import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
+import 'package:focus_quest/features/tasks/widgets/add_quest_sheet.dart';
+import 'package:focus_quest/features/tasks/widgets/quest_card.dart';
+import 'package:focus_quest/models/quest.dart';
 
 /// The main home screen displaying quests.
 class HomeScreen extends ConsumerStatefulWidget {

@@ -1,5 +1,5 @@
-import 'package:flutter_quest/models/quest.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:focus_quest/models/quest.dart';
 
 void main() {
   group('Quest', () {

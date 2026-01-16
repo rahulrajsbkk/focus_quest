@@ -80,7 +80,7 @@ output-localization-file: app_localizations.dart
 
 ```dart
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_quest/l10n/app_localizations.dart';
+import 'package:focus_quest/l10n/app_localizations.dart';
 
 MaterialApp(
   localizationsDelegates: const [
@@ -158,7 +158,7 @@ The generated files will appear in `lib/l10n/`:
 #### Step 4: Use the Localized String in Code
 
 ```dart
-import 'package:flutter_quest/l10n/app_localizations.dart';
+import 'package:focus_quest/l10n/app_localizations.dart';
 
 // In your widget:
 Text(AppLocalizations.of(context)!.welcomeMessage)
