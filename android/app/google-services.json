@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "417478724994",
+    "project_id": "focusquest-d328c",
+    "storage_bucket": "focusquest-d328c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417478724994:android:735b25feaeb446e309d39b",
+        "android_client_info": {
+          "package_name": "me.rahulrajsb.focus"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "417478724994-j88m6d4nf2v82cs1tm732l3ufg53307j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAraRtfeMqsKTxcIt46_Ynj9koa2pqd3_A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "417478724994-j88m6d4nf2v82cs1tm732l3ufg53307j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
