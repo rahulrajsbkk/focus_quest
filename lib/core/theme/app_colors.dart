@@ -42,6 +42,11 @@ class AppColors {
   /// Muted red - error states
   static const Color lightError = Color(0xFFC97D7D);
 
+  /// Teal - highlight color
+  static const Color lightHighlight = Color(
+    0xFF4DB6AC,
+  ); // Material Teal 300
+
   // ==================== Dark Theme Colors ====================
 
   /// Deep olive / warm dark background
@@ -73,6 +78,11 @@ class AppColors {
 
   /// Muted red - error states
   static const Color darkError = Color(0xFFC97D7D);
+
+  /// Teal - highlight color
+  static const Color darkHighlight = Color(
+    0xFF00796B,
+  ); // Material Teal 700
 
   // ==================== Helper Methods ====================
 

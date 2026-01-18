@@ -104,49 +104,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final progress = totalCount > 0 ? completedCount / totalCount : 0.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('FocusQuest'),
-        actions: const [
-          ThemeSwitcherButton(),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Weekly Calendar
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: WeeklyCalendar(
-              selectedDate: _selectedDate,
-              onDateSelected: (date) {
-                setState(() {
-                  _selectedDate = date;
-                });
-                unawaited(HapticService().selectionClick());
-              },
-            ),
-          ),
-
-          // Daily Progress Summary (Optional but matches "ideas" image style)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primaryContainer,
-                    theme.colorScheme.surface,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.3,
-                  ),
-                ),
-              ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Custom Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
                   Expanded(
@@ -154,114 +118,188 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '$completedCount Task'
-                          '${completedCount == 1 ? '' : 's'} Completed',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          'Good Morning,',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
                         Text(
-                          "You've completed daily tasks",
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                          'John Doe', // Placeholder
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(
-                    width: 50,
-                    height: 50,
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      strokeWidth: 6,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.3,
+                        ),
+                      ),
+                    ),
+                    child: IconButton(
+                      onPressed: () {},
+                      icon: const Icon(Icons.notifications_none_rounded),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  const ThemeSwitcherButton(),
                 ],
               ),
             ),
-          ),
-
-          // Category Chips
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _CategoryChip(
-                  label: 'All',
-                  icon: Icons.apps_rounded,
-                  isSelected: selectedCategory == null,
-                  onTap: () {
-                    unawaited(HapticService().selectionClick());
-                    ref.read(questListProvider.notifier).filterByCategory(null);
-                  },
-                ),
-                const SizedBox(width: 8),
-                ...QuestCategory.values.map((category) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _CategoryChip(
-                      label: category.label,
-                      icon: _getCategoryIcon(category),
-                      color: _getCategoryColor(context, category),
-                      isSelected: selectedCategory == category,
-                      onTap: () {
-                        unawaited(HapticService().selectionClick());
-                        ref
-                            .read(questListProvider.notifier)
-                            .filterByCategory(category);
-                      },
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Task List
-          Expanded(
-            child: questState.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(child: Text('Error: $error')),
-              data: (state) => _QuestList(
-                quests: dailyQuests,
-                emptyMessage: 'No quests for this day',
-                emptySubtitle: 'Enjoy your free time!',
-                emptyIcon: Icons.calendar_month_outlined,
-                onQuestTap: (quest) => _showAddQuestSheet(existingQuest: quest),
-                onQuestComplete: (quest) async {
-                  await HapticService().mediumImpact();
-                  await ref
-                      .read(questListProvider.notifier)
-                      .toggleQuestCompletion(
-                        quest.id,
-                        completionDate: _selectedDate,
-                      );
-                },
-                onQuestDelete: (quest) async {
-                  await ref
-                      .read(questListProvider.notifier)
-                      .deleteQuest(quest.id);
+            // Weekly Calendar
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: WeeklyCalendar(
+                selectedDate: _selectedDate,
+                onDateSelected: (date) {
+                  setState(() {
+                    _selectedDate = date;
+                  });
+                  unawaited(HapticService().selectionClick());
                 },
               ),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await HapticService().lightImpact();
-          await _showAddQuestSheet();
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New Quest'),
+
+            // Daily Progress Summary (Optional but matches "ideas" image style)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primaryContainer,
+                      theme.colorScheme.surface,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.3,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$completedCount Task'
+                            '${completedCount == 1 ? '' : 's'} Completed',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "You've completed daily tasks",
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: 50,
+                      height: 50,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        strokeWidth: 6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Category Chips
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _CategoryChip(
+                    label: 'All',
+                    icon: Icons.apps_rounded,
+                    isSelected: selectedCategory == null,
+                    onTap: () {
+                      unawaited(HapticService().selectionClick());
+                      ref
+                          .read(questListProvider.notifier)
+                          .filterByCategory(null);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ...QuestCategory.values.map((category) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _CategoryChip(
+                        label: category.label,
+                        icon: _getCategoryIcon(category),
+                        color: _getCategoryColor(context, category),
+                        isSelected: selectedCategory == category,
+                        onTap: () {
+                          unawaited(HapticService().selectionClick());
+                          ref
+                              .read(questListProvider.notifier)
+                              .filterByCategory(category);
+                        },
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Task List
+            Expanded(
+              child: questState.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(child: Text('Error: $error')),
+                data: (state) => _QuestList(
+                  quests: dailyQuests,
+                  emptyMessage: 'No quests for this day',
+                  emptySubtitle: 'Enjoy your free time!',
+                  emptyIcon: Icons.calendar_month_outlined,
+                  onQuestTap: (quest) =>
+                      _showAddQuestSheet(existingQuest: quest),
+                  onQuestComplete: (quest) async {
+                    await HapticService().mediumImpact();
+                    await ref
+                        .read(questListProvider.notifier)
+                        .toggleQuestCompletion(
+                          quest.id,
+                          completionDate: _selectedDate,
+                        );
+                  },
+                  onQuestDelete: (quest) async {
+                    await ref
+                        .read(questListProvider.notifier)
+                        .deleteQuest(quest.id);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -430,7 +468,7 @@ class _QuestList extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 110),
       itemCount: quests.length,
       itemBuilder: (context, index) {
         final quest = quests[index];

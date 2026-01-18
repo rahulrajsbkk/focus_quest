@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:focus_quest/core/services/haptic_service.dart';
+import 'package:focus_quest/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
 class WeeklyCalendar extends StatefulWidget {
@@ -195,7 +196,11 @@ class _DateItem extends StatelessWidget {
         width: 42, // Slightly smaller to fit arrows if needed
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+          color: isSelected
+              ? (theme.brightness == Brightness.light
+                    ? AppColors.lightHighlight
+                    : AppColors.darkHighlight)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: isSelected
               ? null
