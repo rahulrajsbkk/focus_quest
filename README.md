@@ -1,22 +1,26 @@
-# 🎯 FocusQuest
+# 🎯 Focus Quest
 
-FocusQuest is a **dopamine-driven productivity planner** designed specifically for users with ADHD. It focuses on overcoming executive dysfunction, time blindness, and task initiation paralysis through gamification and low-friction interactions.
+Focus Quest is a **dopamine-driven productivity planner** designed specifically for users with ADHD. It focuses on overcoming executive dysfunction, time blindness, and task initiation paralysis through gamification and low-friction interactions.
 
-## 🚀 Key Features (Phase 1)
+## 🚀 Key Features
 
-- **Quest Management:** Anti-shame, low-friction task creation and management.
-- **Focus Mode:** Pomodoro-style timer ("Mana") with time-blindness defense.
-- **Dopamine Driven:** Heavy use of animations and haptics for rewards.
-- **Local-First:** Pure Sembast (offline-first) reliability.
-- **Multi-Platform:** Built with Flutter for a consistent experience.
-- **Smart Sync:** Switchable cloud backup via Firestore (optional).
+- **Quest Management:** Anti-shame, low-friction task creation with categories and energy levels
+- **Sub-Quests:** 5-minute micro-tasks to combat overwhelm
+- **Focus Mode:** Pomodoro-style timer with pause/resume and session tracking
+- **Progress System:** XP, leveling, streaks, and achievements
+- **Theme Support:** Light/Dark mode with persistent preference
+- **Local-First:** Pure Sembast (offline-first) reliability
+- **Multi-Platform:** Built with Flutter for Android, iOS, macOS, Linux, Windows, and Web
+
+📖 **[See detailed feature list →](FEATURES.md)**
 
 ## 📐 Design & Architecture
 
 The project follows a local-first architecture where the local database (Sembast) is the single source of truth.
 
-For a detailed breakdown of the system architecture, module breakdown, and technical stack, please refer to the:
+For a detailed breakdown of the system architecture, module breakdown, and technical stack, please refer to:
 
+- [**Features Overview**](FEATURES.md)
 - [**High-Level Design (HLD) Plan**](hld.md)
 - [**Theme System Documentation**](lib/core/theme/theme.md)
 

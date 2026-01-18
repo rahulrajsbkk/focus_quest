@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
 
 /// Service for providing haptic feedback across the app.
 ///
-/// Gracefully handles platforms that don't support haptic feedback.
+/// Uses Flutter's built-in HapticFeedback for cross-platform compatibility.
 class HapticService {
   factory HapticService() {
     return _instance;
@@ -14,28 +13,10 @@ class HapticService {
 
   static final HapticService _instance = HapticService._internal();
 
-  bool? _canVibrate;
-
-  /// Check if the device supports haptic feedback.
-  Future<bool> _checkCanVibrate() async {
-    if (_canVibrate != null) return _canVibrate!;
-
-    try {
-      _canVibrate = await Vibrate.canVibrate;
-    } on PlatformException {
-      // Platform doesn't support vibration (e.g., macOS, Windows, Linux)
-      debugPrint('HapticService: Platform does not support vibration');
-      _canVibrate = false;
-    }
-    return _canVibrate!;
-  }
-
-  /// Trigger a basic vibration.
+  /// Trigger a basic vibration (medium impact).
   Future<void> vibrate() async {
-    if (!await _checkCanVibrate()) return;
-
     try {
-      await Vibrate.vibrate();
+      await HapticFeedback.mediumImpact();
     } on PlatformException catch (e) {
       debugPrint('HapticService: Failed to vibrate: $e');
     }
@@ -43,10 +24,8 @@ class HapticService {
 
   /// Trigger a light haptic impact.
   Future<void> lightImpact() async {
-    if (!await _checkCanVibrate()) return;
-
     try {
-      await Vibrate.feedback(FeedbackType.light);
+      await HapticFeedback.lightImpact();
     } on PlatformException catch (e) {
       debugPrint('HapticService: Failed to provide light impact: $e');
     }
@@ -54,10 +33,8 @@ class HapticService {
 
   /// Trigger a medium haptic impact.
   Future<void> mediumImpact() async {
-    if (!await _checkCanVibrate()) return;
-
     try {
-      await Vibrate.feedback(FeedbackType.medium);
+      await HapticFeedback.mediumImpact();
     } on PlatformException catch (e) {
       debugPrint('HapticService: Failed to provide medium impact: $e');
     }
@@ -65,10 +42,8 @@ class HapticService {
 
   /// Trigger a heavy haptic impact.
   Future<void> heavyImpact() async {
-    if (!await _checkCanVibrate()) return;
-
     try {
-      await Vibrate.feedback(FeedbackType.heavy);
+      await HapticFeedback.heavyImpact();
     } on PlatformException catch (e) {
       debugPrint('HapticService: Failed to provide heavy impact: $e');
     }
@@ -76,10 +51,8 @@ class HapticService {
 
   /// Trigger a selection click haptic.
   Future<void> selectionClick() async {
-    if (!await _checkCanVibrate()) return;
-
     try {
-      await Vibrate.feedback(FeedbackType.selection);
+      await HapticFeedback.selectionClick();
     } on PlatformException catch (e) {
       debugPrint('HapticService: Failed to provide selection click: $e');
     }
