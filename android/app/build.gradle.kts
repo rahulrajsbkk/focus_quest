@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -19,7 +21,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -32,11 +34,30 @@ android {
         versionName = flutter.versionName
     }
 
+    val envFile = rootProject.file("../.env")
+    val env = Properties()
+    if (envFile.exists()) {
+        envFile.inputStream().use { env.load(it) }
+    }
+
+    signingConfigs {
+        create("release") {
+            keyAlias = env.getProperty("ANDROID_KEY_ALIAS")
+            keyPassword = env.getProperty("ANDROID_KEY_PASSWORD")
+            storeFile = env.getProperty("ANDROID_KEYSTORE_PATH")?.let { path -> file(path) }
+            storePassword = env.getProperty("ANDROID_STORE_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (env.containsKey("ANDROID_KEY_ALIAS")) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
