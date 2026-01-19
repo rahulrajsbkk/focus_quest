@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/haptic_service.dart';
 import 'package:focus_quest/core/theme/app_colors.dart';
+import 'package:focus_quest/features/navigation/providers/navigation_provider.dart';
 import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
 import 'package:focus_quest/features/tasks/screens/home_screen.dart';
 import 'package:focus_quest/features/tasks/widgets/add_quest_sheet.dart';
+import 'package:focus_quest/features/timer/screens/focus_timer_screen.dart';
 import 'package:focus_quest/models/quest.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
@@ -17,21 +19,17 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  int _selectedIndex = 0;
-
   final List<Widget> _screens = [
     const HomeScreen(),
     const PlaceholderScreen(title: 'Calendar'),
     const HomeScreen(), // Dummy for center button
-    const PlaceholderScreen(title: 'Timer'),
+    const FocusTimerScreen(),
     const PlaceholderScreen(title: 'Profile'),
   ];
 
   void _onItemTapped(int index) {
     if (index == 2) return; // Dedicated for FAB
-    setState(() {
-      _selectedIndex = index;
-    });
+    ref.read(navigationProvider.notifier).setIndex(index);
     unawaited(HapticService().selectionClick());
   }
 
@@ -54,10 +52,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final selectedIndex = ref.watch(navigationProvider);
 
     return Scaffold(
       body: IndexedStack(
-        index: _selectedIndex,
+        index: selectedIndex,
         children: _screens,
       ),
       extendBody: true,
@@ -79,18 +78,30 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_rounded, Icons.home_outlined),
+              _buildNavItem(
+                0,
+                Icons.home_rounded,
+                Icons.home_outlined,
+                selectedIndex,
+              ),
               _buildNavItem(
                 1,
                 Icons.calendar_today_rounded,
                 Icons.calendar_today_outlined,
+                selectedIndex,
               ),
               _buildCenterButton(theme),
-              _buildNavItem(3, Icons.timer_rounded, Icons.timer_outlined),
+              _buildNavItem(
+                3,
+                Icons.timer_rounded,
+                Icons.timer_outlined,
+                selectedIndex,
+              ),
               _buildNavItem(
                 4,
                 Icons.person_rounded,
                 Icons.person_outline_rounded,
+                selectedIndex,
               ),
             ],
           ),
@@ -132,8 +143,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     int index,
     IconData selectedIcon,
     IconData unselectedIcon,
+    int selectedIndex,
   ) {
-    final isSelected = _selectedIndex == index;
+    final isSelected = selectedIndex == index;
     final theme = Theme.of(context);
     final color = isSelected
         ? (theme.brightness == Brightness.light

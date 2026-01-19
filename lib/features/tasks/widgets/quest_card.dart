@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/theme/app_colors.dart';
+import 'package:focus_quest/features/timer/widgets/quest_time_log_widget.dart';
 import 'package:focus_quest/models/quest.dart';
 
 /// A card widget displaying a quest with its status, energy level, and
 /// category.
-class QuestCard extends StatelessWidget {
+class QuestCard extends ConsumerWidget {
   const QuestCard({
     required this.quest,
     required this.onTap,
     required this.onComplete,
     required this.onDelete,
+    this.onStartTimer,
     super.key,
   });
 
@@ -17,6 +20,7 @@ class QuestCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onComplete;
   final VoidCallback onDelete;
+  final VoidCallback? onStartTimer;
 
   Color _getEnergyColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -103,7 +107,7 @@ class QuestCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final energyColor = _getEnergyColor(context);
@@ -409,13 +413,48 @@ class QuestCard extends StatelessWidget {
 
                 const SizedBox(width: 8),
 
-                // Status indicator
-                Icon(
-                  _getStatusIcon(),
-                  color: quest.isCompleted
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                  size: 20,
+                // Timer button and time logged
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Time logged indicator
+                    QuestTimeLogWidget(
+                      questId: quest.id,
+                      compact: true,
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Timer button (only for active quests)
+                    if (!quest.isCompleted && onStartTimer != null)
+                      GestureDetector(
+                        onTap: onStartTimer,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondary.withValues(
+                              alpha: 0.15,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            color: theme.colorScheme.secondary,
+                            size: 20,
+                          ),
+                        ),
+                      )
+                    else
+                      // Status indicator for completed quests
+                      Icon(
+                        _getStatusIcon(),
+                        color: quest.isCompleted
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.3,
+                              ),
+                        size: 20,
+                      ),
+                  ],
                 ),
               ],
             ),

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/haptic_service.dart';
 import 'package:focus_quest/core/widgets/theme_switcher.dart';
+import 'package:focus_quest/features/navigation/providers/navigation_provider.dart';
 import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
 import 'package:focus_quest/features/tasks/widgets/add_quest_sheet.dart';
 import 'package:focus_quest/features/tasks/widgets/quest_card.dart';
 import 'package:focus_quest/features/tasks/widgets/weekly_calendar.dart';
+import 'package:focus_quest/features/timer/providers/focus_session_provider.dart';
 import 'package:focus_quest/models/quest.dart';
 
 /// The main home screen displaying quests.
@@ -295,6 +297,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         .read(questListProvider.notifier)
                         .deleteQuest(quest.id);
                   },
+                  onStartTimer: (Quest quest) {
+                    // Select the quest for timer and navigate to timer tab
+                    ref.read(focusSessionProvider.notifier).selectQuest(quest);
+                    // Navigate to timer tab (index 3)
+                    ref.read(navigationProvider.notifier).setIndex(3);
+                  },
                 ),
               ),
             ),
@@ -412,6 +420,7 @@ class _QuestList extends StatelessWidget {
     required this.onQuestTap,
     required this.onQuestComplete,
     required this.onQuestDelete,
+    this.onStartTimer,
   });
 
   final List<Quest> quests;
@@ -421,6 +430,7 @@ class _QuestList extends StatelessWidget {
   final void Function(Quest) onQuestTap;
   final void Function(Quest) onQuestComplete;
   final void Function(Quest) onQuestDelete;
+  final void Function(Quest)? onStartTimer;
 
   @override
   Widget build(BuildContext context) {
@@ -478,6 +488,9 @@ class _QuestList extends StatelessWidget {
           onTap: () => onQuestTap(quest),
           onComplete: () => onQuestComplete(quest),
           onDelete: () => onQuestDelete(quest),
+          onStartTimer: onStartTimer != null
+              ? () => onStartTimer!(quest)
+              : null,
         );
       },
     );
