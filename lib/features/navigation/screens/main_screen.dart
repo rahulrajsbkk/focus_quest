@@ -91,8 +91,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               ),
               _buildNavItem(
                 1,
-                Icons.calendar_today_rounded,
-                Icons.calendar_today_outlined,
+                Icons.calendar_month_rounded,
+                Icons.calendar_month_outlined,
                 selectedIndex,
               ),
               _buildCenterButton(theme),
@@ -344,7 +344,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         child: Icon(
           isSelected ? selectedIcon : unselectedIcon,
           color: color,
-          size: 28,
+          size: 24,
         ),
       ),
     );
