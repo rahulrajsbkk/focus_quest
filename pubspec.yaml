@@ -44,6 +44,7 @@ dependencies:
   path_provider: ^2.1.4
   sembast: ^3.8.6
   sleek_circular_slider: ^2.1.0
+  table_calendar: ^3.2.0
   uuid: ^4.5.1
 
 dev_dependencies:

@@ -264,6 +264,50 @@ class QuestListNotifier extends AsyncNotifier<QuestListState> {
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
+
+  /// Moves a quest to a new date (updates dueDate and resets status if needed).
+  Future<void> rescheduleQuest(String questId, DateTime newDate) async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    final quest = currentState.quests.firstWhere((q) => q.id == questId);
+
+    // If it was completed, maybe we shouldn't reschedule?
+    // Assuming we reschedule pending tasks.
+
+    final updated = quest.copyWith(
+      dueDate: newDate,
+      status: QuestStatus.pending, // Reset to pending if it was stuck
+      updatedAt: DateTime.now(),
+    );
+
+    await updateQuest(updated);
+  }
+
+  /// Reschedules all overdue non-repeating tasks to the given date (default:
+  /// today).
+  Future<int> rescheduleOverdueTasks({DateTime? targetDate}) async {
+    final currentState = state.value;
+    if (currentState == null) return 0;
+
+    final now = DateTime.now();
+    final today = targetDate ?? DateTime(now.year, now.month, now.day);
+
+    final overdue = currentState.quests.where((q) {
+      if (q.isRepeating) return false; // Don't move repeating schedules
+      if (q.isCompleted) return false;
+      if (q.dueDate == null) return false;
+
+      final due = DateTime(q.dueDate!.year, q.dueDate!.month, q.dueDate!.day);
+      return due.isBefore(today); // Strictly before today
+    }).toList();
+
+    for (final quest in overdue) {
+      await updateQuest(quest.copyWith(dueDate: today));
+    }
+
+    return overdue.length;
+  }
 }
 
 /// Provider for quest list

@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/haptic_service.dart';
 import 'package:focus_quest/core/widgets/theme_switcher.dart';
 import 'package:focus_quest/features/navigation/providers/navigation_provider.dart';
+import 'package:focus_quest/features/tasks/providers/date_provider.dart';
 import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
 import 'package:focus_quest/features/tasks/widgets/add_quest_sheet.dart';
-import 'package:focus_quest/features/tasks/widgets/quest_card.dart';
+import 'package:focus_quest/features/tasks/widgets/quest_list_view.dart';
 import 'package:focus_quest/features/tasks/widgets/weekly_calendar.dart';
 import 'package:focus_quest/features/timer/providers/focus_session_provider.dart';
 import 'package:focus_quest/models/quest.dart';
@@ -19,9 +20,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  DateTime _selectedDate = DateTime.now();
+  // DateTime _selectedDate = DateTime.now(); // REMOVED local state
 
   Future<void> _showAddQuestSheet({Quest? existingQuest}) async {
+    final selectedDate = ref.read(selectedDateProvider);
+
     final result = await showModalBottomSheet<Quest>(
       context: context,
       isScrollControlled: true,
@@ -31,7 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       builder: (context) => AddQuestSheet(
         existingQuest: existingQuest,
-        initialDate: _selectedDate,
+        initialDate: selectedDate,
       ),
     );
 
@@ -53,6 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final theme = Theme.of(context);
     final questState = ref.watch(questListProvider);
     final selectedCategory = ref.watch(selectedCategoryProvider);
+    final selectedDate = ref.watch(selectedDateProvider);
 
     // Filter quests for selected date
     final allQuests = questState.value?.quests ?? [];
@@ -60,12 +64,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         allQuests
             .where((q) {
               // 1. Check if scheduled for this date
-              final isScheduled = q.isScheduledForDate(_selectedDate);
+              final isScheduled = q.isScheduledForDate(selectedDate);
 
               // 2. If it's today, also show active overdue tasks (due date <
               // today)
               var isOverdue = false;
-              if (_isSameDay(_selectedDate, DateTime.now())) {
+              if (_isSameDay(selectedDate, DateTime.now())) {
                 if (q.isActive && q.dueDate != null) {
                   final due = DateTime(
                     q.dueDate!.year,
@@ -91,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             .map((q) {
               // Create a view-specific quest object with the correct status for
               // this day
-              return q.copyWith(status: q.statusForDate(_selectedDate));
+              return q.copyWith(status: q.statusForDate(selectedDate));
             })
             .toList()
           ..sort((a, b) {
@@ -160,11 +164,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: WeeklyCalendar(
-                selectedDate: _selectedDate,
+                selectedDate: selectedDate, // Use variable
                 onDateSelected: (date) {
-                  setState(() {
-                    _selectedDate = date;
-                  });
+                  // Update provider
+                  ref.read(selectedDateProvider.notifier).date = date;
                   unawaited(HapticService().selectionClick());
                 },
               ),
@@ -276,7 +279,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: questState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => Center(child: Text('Error: $error')),
-                data: (state) => _QuestList(
+                data: (state) => QuestListView(
                   quests: dailyQuests,
                   emptyMessage: 'No quests for this day',
                   emptySubtitle: 'Enjoy your free time!',
@@ -289,7 +292,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         .read(questListProvider.notifier)
                         .toggleQuestCompletion(
                           quest.id,
-                          completionDate: _selectedDate,
+                          completionDate: selectedDate,
                         );
                   },
                   onQuestDelete: (quest) async {
@@ -407,92 +410,6 @@ class _CategoryChip extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _QuestList extends StatelessWidget {
-  const _QuestList({
-    required this.quests,
-    required this.emptyMessage,
-    required this.emptySubtitle,
-    required this.emptyIcon,
-    required this.onQuestTap,
-    required this.onQuestComplete,
-    required this.onQuestDelete,
-    this.onStartTimer,
-  });
-
-  final List<Quest> quests;
-  final String emptyMessage;
-  final String emptySubtitle;
-  final IconData emptyIcon;
-  final void Function(Quest) onQuestTap;
-  final void Function(Quest) onQuestComplete;
-  final void Function(Quest) onQuestDelete;
-  final void Function(Quest)? onStartTimer;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    if (quests.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  emptyIcon,
-                  size: 48,
-                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                emptyMessage,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                emptySubtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(0, 12, 0, 110),
-      itemCount: quests.length,
-      itemBuilder: (context, index) {
-        final quest = quests[index];
-        return QuestCard(
-          key: ValueKey(quest.id),
-          quest: quest,
-          onTap: () => onQuestTap(quest),
-          onComplete: () => onQuestComplete(quest),
-          onDelete: () => onQuestDelete(quest),
-          onStartTimer: onStartTimer != null
-              ? () => onStartTimer!(quest)
-              : null,
-        );
-      },
     );
   }
 }

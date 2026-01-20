@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/haptic_service.dart';
 import 'package:focus_quest/core/theme/app_colors.dart';
+import 'package:focus_quest/features/calendar/screens/calendar_screen.dart';
+import 'package:focus_quest/features/journal/screens/daily_reflection_screen.dart';
 import 'package:focus_quest/features/navigation/providers/navigation_provider.dart';
+import 'package:focus_quest/features/tasks/providers/date_provider.dart';
 import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
 import 'package:focus_quest/features/tasks/screens/home_screen.dart';
 import 'package:focus_quest/features/tasks/widgets/add_quest_sheet.dart';
@@ -21,7 +24,7 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
-    const PlaceholderScreen(title: 'Calendar'),
+    const CalendarScreen(),
     const HomeScreen(), // Dummy for center button
     const FocusTimerScreen(),
     const PlaceholderScreen(title: 'Profile'),
@@ -34,6 +37,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   Future<void> _showAddQuestSheet() async {
+    final selectedDate = ref.read(selectedDateProvider);
+
     final result = await showModalBottomSheet<Quest>(
       context: context,
       isScrollControlled: true,
@@ -41,7 +46,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => const AddQuestSheet(),
+      builder: (context) => AddQuestSheet(initialDate: selectedDate),
     );
 
     if (result != null) {
@@ -114,7 +119,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     return GestureDetector(
       onTap: () async {
         await HapticService().lightImpact();
-        await _showAddQuestSheet();
+        if (!mounted) return;
+        await _showAddMenu(context);
       },
       child: Container(
         width: 56,
@@ -136,6 +142,183 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           size: 32,
         ),
       ),
+    );
+  }
+
+  Future<void> _showAddMenu(BuildContext context) async {
+    final theme = Theme.of(context);
+    final selectedDate = ref.read<DateTime>(selectedDateProvider);
+    final dateStr =
+        selectedDate.year == DateTime.now().year &&
+            selectedDate.month == DateTime.now().month &&
+            selectedDate.day == DateTime.now().day
+        ? 'Today'
+        : '${selectedDate.day}/${selectedDate.month}';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1E), // Dark premium background
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Create for $dateStr',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Grid Layout
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _AddMenuItem(
+                          title: 'New Quest',
+                          subtitle: 'Task or Goal',
+                          icon: Icons.task_alt_rounded,
+                          color: const Color(0xFF6B8AF8), // Blueish
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await _showAddQuestSheet();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _AddMenuItem(
+                          title: 'Reflection',
+                          subtitle: 'Mood & Wins',
+                          icon: Icons.auto_awesome_rounded,
+                          color: const Color(0xFFF86B6B), // Reddish
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => DailyReflectionScreen(
+                                  date: selectedDate,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Maintenance / Utilities
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: InkWell(
+                      onTap: () async {
+                        Navigator.pop(context);
+                        unawaited(HapticService().mediumImpact());
+                        final count = await ref
+                            .read(questListProvider.notifier)
+                            .rescheduleOverdueTasks(targetDate: selectedDate);
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                count > 0
+                                    ? 'Moved $count overdue tasks to $dateStr'
+                                    : 'No overdue non-repeating tasks found.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD54F).withValues(
+                                alpha: 0.2,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.update_rounded,
+                              color: Color(0xFFFFD54F),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Reschedule Overdue',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Move pending tasks to $dateStr',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.white.withValues(alpha: 0.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -162,6 +345,76 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           isSelected ? selectedIcon : unselectedIcon,
           color: color,
           size: 28,
+        ),
+      ),
+    );
+  }
+}
+
+class _AddMenuItem extends StatelessWidget {
+  const _AddMenuItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        height: 140,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: color.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
