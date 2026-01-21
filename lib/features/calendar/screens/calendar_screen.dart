@@ -285,7 +285,12 @@ class CalendarScreen extends ConsumerWidget {
                           children: dailyQuests
                               .map(
                                 (quest) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    12,
+                                  ),
                                   child: QuestCard(
                                     key: ValueKey(quest.id),
                                     quest: quest,

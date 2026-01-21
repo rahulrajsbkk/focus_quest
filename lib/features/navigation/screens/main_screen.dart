@@ -240,78 +240,98 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                   const SizedBox(height: 16),
 
                   // Maintenance / Utilities
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: InkWell(
-                      onTap: () async {
-                        Navigator.pop(context);
-                        unawaited(HapticService().mediumImpact());
-                        final count = await ref
-                            .read(questListProvider.notifier)
-                            .rescheduleOverdueTasks(targetDate: selectedDate);
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final hasOverdue =
+                          ref
+                              .watch(questListProvider)
+                              .value
+                              ?.hasOverdueTasks(selectedDate) ??
+                          false;
+                      if (!hasOverdue) return const SizedBox.shrink();
 
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                count > 0
-                                    ? 'Moved $count overdue tasks to $dateStr'
-                                    : 'No overdue non-repeating tasks found.',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFD54F).withValues(
-                                alpha: 0.2,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.update_rounded,
-                              color: Color(0xFFFFD54F),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Reschedule Overdue',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: InkWell(
+                          onTap: () async {
+                            Navigator.pop(context);
+                            unawaited(HapticService().mediumImpact());
+                            final count = await ref
+                                .read(questListProvider.notifier)
+                                .rescheduleOverdueTasks(
+                                  targetDate: selectedDate,
+                                );
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    count > 0
+                                        ? 'Moved $count overdue tasks '
+                                              'to $dateStr'
+                                        : 'No overdue non-repeating '
+                                              'tasks found.',
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Move pending tasks to $dateStr',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.5),
+                              );
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFD54F).withValues(
+                                    alpha: 0.2,
                                   ),
+                                  shape: BoxShape.circle,
                                 ),
-                              ],
-                            ),
+                                child: const Icon(
+                                  Icons.update_rounded,
+                                  color: Color(0xFFFFD54F),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Reschedule Overdue',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Move pending tasks to $dateStr',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white.withValues(alpha: 0.3),
+                              ),
+                            ],
                           ),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

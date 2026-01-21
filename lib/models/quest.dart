@@ -120,6 +120,9 @@ class Quest {
     this.completedAt,
     this.dueDate,
     this.tags = const [],
+    this.skippedDates = const [],
+    this.recurrenceEndDate,
+    this.completionNotes = const {},
   });
 
   /// Creates a Quest from a JSON map.
@@ -166,6 +169,18 @@ class Quest {
           ? DateTime.parse(json['dueDate'] as String)
           : null,
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
+      skippedDates:
+          (json['skippedDates'] as List<dynamic>?)
+              ?.map((d) => DateTime.parse(d as String))
+              .toList() ??
+          const [],
+      recurrenceEndDate: json['recurrenceEndDate'] != null
+          ? DateTime.parse(json['recurrenceEndDate'] as String)
+          : null,
+      completionNotes:
+          (json['completionNotes'] as Map<dynamic, dynamic>?)
+              ?.cast<String, String>() ??
+          const {},
     );
   }
 
@@ -215,6 +230,15 @@ class Quest {
   /// Tags for categorization and filtering.
   final List<String> tags;
 
+  /// Dates to skip for repeating quests.
+  final List<DateTime> skippedDates;
+
+  /// Optional end date for recurrence.
+  final DateTime? recurrenceEndDate;
+
+  /// Notes for specific completion dates.
+  final Map<String, String> completionNotes;
+
   /// Converts the Quest to a JSON map.
   Map<String, dynamic> toJson() {
     return {
@@ -233,6 +257,9 @@ class Quest {
       'completedAt': completedAt?.toIso8601String(),
       'dueDate': dueDate?.toIso8601String(),
       'tags': tags,
+      'skippedDates': skippedDates.map((d) => d.toIso8601String()).toList(),
+      'recurrenceEndDate': recurrenceEndDate?.toIso8601String(),
+      'completionNotes': completionNotes,
     };
   }
 
@@ -253,6 +280,9 @@ class Quest {
     DateTime? completedAt,
     DateTime? dueDate,
     List<String>? tags,
+    List<DateTime>? skippedDates,
+    DateTime? recurrenceEndDate,
+    Map<String, String>? completionNotes,
   }) {
     return Quest(
       id: id ?? this.id,
@@ -270,6 +300,9 @@ class Quest {
       completedAt: completedAt ?? this.completedAt,
       dueDate: dueDate ?? this.dueDate,
       tags: tags ?? this.tags,
+      skippedDates: skippedDates ?? this.skippedDates,
+      recurrenceEndDate: recurrenceEndDate ?? this.recurrenceEndDate,
+      completionNotes: completionNotes ?? this.completionNotes,
     );
   }
 
@@ -327,9 +360,20 @@ class Quest {
       return false;
     }
 
+    final now = DateTime.now();
+
+    // Check if recurrence has ended
+    if (recurrenceEndDate != null && _isBeforeDay(recurrenceEndDate!, now)) {
+      return false;
+    }
+
+    // Check if today is skipped
+    if (skippedDates.any((d) => _isSameDay(d, now))) {
+      return false;
+    }
+
     if (lastCompletedAt == null) return true;
 
-    final now = DateTime.now();
     final lastCompleted = lastCompletedAt!;
 
     switch (repeatFrequency) {
@@ -349,6 +393,14 @@ class Quest {
   bool isScheduledForDate(DateTime date) {
     // Ensure the date is not before the quest was created (start date)
     if (_isBeforeDay(date, createdAt)) return false;
+
+    // Check if recurrence has ended
+    if (recurrenceEndDate != null && _isBeforeDay(recurrenceEndDate!, date)) {
+      return false;
+    }
+
+    // Check if date is skipped
+    if (skippedDates.any((d) => _isSameDay(d, date))) return false;
 
     // If not repeating, check due date
     if (!isRepeating) {
@@ -420,7 +472,10 @@ class Quest {
         other.updatedAt == updatedAt &&
         other.completedAt == completedAt &&
         other.dueDate == dueDate &&
-        listEquals(other.tags, tags);
+        listEquals(other.tags, tags) &&
+        listEquals(other.skippedDates, skippedDates) &&
+        other.recurrenceEndDate == recurrenceEndDate &&
+        mapEquals(other.completionNotes, completionNotes);
   }
 
   @override
@@ -441,6 +496,10 @@ class Quest {
       completedAt,
       dueDate,
       Object.hashAll(tags),
+      Object.hashAll(skippedDates),
+      recurrenceEndDate,
+      Object.hashAll(completionNotes.keys),
+      Object.hashAll(completionNotes.values),
     );
   }
 

@@ -76,6 +76,16 @@ class QuestListState {
     }).toList()..sort((Quest a, Quest b) => b.createdAt.compareTo(a.createdAt));
     return _filterByCategory(active);
   }
+
+  /// Check if there are any overdue non-repeating tasks relative to a date
+  bool hasOverdueTasks(DateTime targetDate) {
+    final target = DateTime(targetDate.year, targetDate.month, targetDate.day);
+    return quests.any((q) {
+      if (q.isRepeating || q.isCompleted || q.dueDate == null) return false;
+      final due = DateTime(q.dueDate!.year, q.dueDate!.month, q.dueDate!.day);
+      return due.isBefore(target);
+    });
+  }
 }
 
 /// Notifier for managing quest list state
@@ -160,12 +170,14 @@ class QuestListNotifier extends AsyncNotifier<QuestListState> {
   Future<void> toggleQuestCompletion(
     String questId, {
     DateTime? completionDate,
+    String? note,
   }) async {
     final currentState = state.value;
     if (currentState == null) return;
 
     final quest = currentState.quests.firstWhere((Quest q) => q.id == questId);
     final now = completionDate ?? DateTime.now();
+    final dateKey = _formatDateKey(now);
 
     Quest updatedQuest;
 
@@ -176,37 +188,96 @@ class QuestListNotifier extends AsyncNotifier<QuestListState> {
 
       if (quest.isCompleted && isSameDayCompletion) {
         // Uncompleting the current day's completion
+        final updatedNotes = Map<String, String>.from(quest.completionNotes)
+          ..remove(dateKey);
+
         updatedQuest = quest.copyWith(
           status: QuestStatus.pending,
           updatedAt: now,
           completionCount: quest.completionCount > 0
               ? quest.completionCount - 1
               : 0,
+          completionNotes: updatedNotes,
         );
       } else {
         // Completing for this day (or moving completion to this day)
+        final updatedNotes = Map<String, String>.from(quest.completionNotes);
+        if (note != null && note.isNotEmpty) {
+          updatedNotes[dateKey] = note;
+        }
+
         updatedQuest = quest.copyWith(
           status: QuestStatus.completed,
           lastCompletedAt: now,
           completionCount: quest.completionCount + 1,
           updatedAt: now,
+          completionNotes: updatedNotes,
         );
       }
     } else {
       // Non-repeating quest - simple toggle
-      updatedQuest = quest.isCompleted
-          ? quest.copyWith(
-              status: QuestStatus.pending,
-              updatedAt: now,
-            )
-          : quest.copyWith(
-              status: QuestStatus.completed,
-              completedAt: now,
-              updatedAt: now,
-            );
+      final updatedNotes = Map<String, String>.from(quest.completionNotes);
+      if (quest.isCompleted) {
+        updatedNotes.remove(dateKey);
+        updatedQuest = quest.copyWith(
+          status: QuestStatus.pending,
+          updatedAt: now,
+          completionNotes: updatedNotes,
+        );
+      } else {
+        if (note != null && note.isNotEmpty) {
+          updatedNotes[dateKey] = note;
+        }
+        updatedQuest = quest.copyWith(
+          status: QuestStatus.completed,
+          completedAt: now,
+          updatedAt: now,
+          completionNotes: updatedNotes,
+        );
+      }
     }
 
     await updateQuest(updatedQuest);
+  }
+
+  String _formatDateKey(DateTime date) {
+    final y = date.year;
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  /// Skips a repeating quest for a specific date
+  Future<void> skipQuestForToday(String questId, {DateTime? targetDate}) async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    final quest = currentState.quests.firstWhere((q) => q.id == questId);
+    if (!quest.isRepeating) return;
+
+    final date = targetDate ?? DateTime.now();
+    final updatedSkipped = List<DateTime>.from(quest.skippedDates)..add(date);
+
+    await updateQuest(quest.copyWith(skippedDates: updatedSkipped));
+  }
+
+  /// Stops recurrence of a quest from a specific date onwards
+  Future<void> stopQuestRecurrence(
+    String questId, {
+    DateTime? targetDate,
+  }) async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    final quest = currentState.quests.firstWhere((q) => q.id == questId);
+    if (!quest.isRepeating) return;
+
+    final date = targetDate ?? DateTime.now();
+    // Set recurrence end date to day before to effectively stop it from target
+    // date
+    final dayBefore = date.subtract(const Duration(days: 1));
+
+    await updateQuest(quest.copyWith(recurrenceEndDate: dayBefore));
   }
 
   /// Delete a quest
