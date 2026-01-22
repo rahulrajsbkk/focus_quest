@@ -1,6 +1,9 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:focus_quest/core/services/haptic_service.dart';
 import 'package:focus_quest/core/services/notification_service.dart';
 import 'package:focus_quest/core/theme/app_colors.dart';
@@ -14,6 +17,7 @@ import 'package:focus_quest/features/timer/widgets/timer_settings_sheet.dart';
 import 'package:focus_quest/models/focus_session.dart';
 import 'package:focus_quest/models/quest.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 /// Focus Timer screen with Pomodoro functionality
 class FocusTimerScreen extends ConsumerStatefulWidget {
@@ -32,6 +36,9 @@ class FocusTimerScreen extends ConsumerStatefulWidget {
 class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  Timer? _inactivityTimer;
+  bool _isPowerSaving = false;
+  static const _inactivityThreshold = Duration(seconds: 30);
 
   @override
   void initState() {
@@ -58,11 +65,35 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(NotificationService().requestPermission());
     });
+
+    _resetInactivityTimer();
   }
+
+  void _resetInactivityTimer() {
+    _inactivityTimer?.cancel();
+    if (_isPowerSaving) {
+      setState(() {
+        _isPowerSaving = false;
+      });
+    }
+
+    final focusState = ref.read(focusSessionProvider);
+    if (focusState.isTimerRunning && _isMobile) {
+      _inactivityTimer = Timer(_inactivityThreshold, () {
+        setState(() {
+          _isPowerSaving = true;
+        });
+      });
+    }
+  }
+
+  bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _inactivityTimer?.cancel();
+    unawaited(WakelockPlus.disable());
     super.dispose();
   }
 
@@ -111,297 +142,364 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
 
     ref.listen<FocusState>(
       focusSessionProvider,
-      _checkSessionCompletion,
+      (previous, next) {
+        _checkSessionCompletion(previous, next);
+
+        // Handle Wakelock
+        if (next.isTimerRunning != previous?.isTimerRunning) {
+          if (next.isTimerRunning) {
+            unawaited(WakelockPlus.enable());
+          } else {
+            unawaited(WakelockPlus.disable());
+          }
+        }
+
+        // Reset inactivity timer when timer starts/stops
+        if (next.isTimerRunning != previous?.isTimerRunning) {
+          _resetInactivityTimer();
+        }
+      },
     );
 
     final currentSession = focusState.currentSession;
     final hasActiveSession = focusState.hasActiveSession;
     final sessionColor = _getSessionTypeColor(currentSession?.type, theme);
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+    return Listener(
+      onPointerDown: (_) => _resetInactivityTimer(),
+      onPointerMove: (_) => _resetInactivityTimer(),
+      child: Scaffold(
+        body: Stack(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
+            SafeArea(
+              bottom: false,
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
                       children: [
-                        Text(
-                          'Focus Mode',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Focus Mode',
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _getSessionTypeLabel(currentSession?.type),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: sessionColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _getSessionTypeLabel(currentSession?.type),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: sessionColor,
-                            fontWeight: FontWeight.w500,
+                        // Settings button
+                        Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: IconButton(
+                            onPressed: () => _showSettings(context),
+                            icon: const Icon(Icons.settings_outlined),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  // Settings button
-                  Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.3,
+
+                  // Today's stats
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primaryContainer,
+                            theme.colorScheme.surface,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _StatItem(
+                              icon: Icons.check_circle_outline_rounded,
+                              label: 'Sessions',
+                              value: '${focusState.completedSessionsToday}',
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.3,
+                            ),
+                          ),
+                          Expanded(
+                            child: _StatItem(
+                              icon: Icons.schedule_rounded,
+                              label: 'Focus Time',
+                              value: _formatTotalTime(
+                                focusState.totalFocusTimeToday,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Quest selector
+                  if (!hasActiveSession)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: QuestSelector(
+                        selectedQuest: focusState.selectedQuest,
+                        quests: questsState.value?.allActiveQuests ?? [],
+                        onQuestSelected: (quest) {
+                          ref
+                              .read<FocusSessionNotifier>(
+                                focusSessionProvider.notifier,
+                              )
+                              .selectQuest(quest);
+                        },
+                      ),
+                    ),
+
+                  // Selected quest indicator during session
+                  if (hasActiveSession && focusState.selectedQuest != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.3,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.flag_rounded,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                focusState.selectedQuest!.title,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            QuestTimeLogWidget(
+                              questId: focusState.selectedQuest!.id,
+                              compact: true,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    child: IconButton(
-                      onPressed: () => _showSettings(context),
-                      icon: const Icon(Icons.settings_outlined),
+
+                  // Timer Display
+                  Expanded(
+                    child: Center(
+                      child: TimerDisplay(
+                        session: currentSession,
+                        isRunning: focusState.isTimerRunning,
+                        isPaused: focusState.isTimerPaused,
+                        focusDuration: focusState.focusDuration,
+                        sessionColor: sessionColor,
+                        pulseController: _pulseController,
+                      ),
+                    ),
+                  ),
+
+                  // Control Buttons
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 130),
+                    child: TimerControls(
+                      hasActiveSession: hasActiveSession,
+                      isRunning: focusState.isTimerRunning,
+                      isPaused: focusState.isTimerPaused,
+                      currentSession: currentSession,
+                      sessionColor: sessionColor,
+                      onStartFocus: () {
+                        unawaited(HapticService().mediumImpact());
+                        unawaited(
+                          ref
+                              .read<FocusSessionNotifier>(
+                                focusSessionProvider.notifier,
+                              )
+                              .startFocusSession(
+                                questId: focusState.selectedQuestId,
+                                quest: focusState.selectedQuest,
+                              ),
+                        );
+                      },
+                      onStartShortBreak: () {
+                        unawaited(HapticService().lightImpact());
+                        unawaited(
+                          ref
+                              .read<FocusSessionNotifier>(
+                                focusSessionProvider.notifier,
+                              )
+                              .startBreakSession(),
+                        );
+                      },
+                      onStartLongBreak: () {
+                        unawaited(HapticService().lightImpact());
+                        unawaited(
+                          ref
+                              .read<FocusSessionNotifier>(
+                                focusSessionProvider.notifier,
+                              )
+                              .startBreakSession(isLongBreak: true),
+                        );
+                      },
+                      onPause: () {
+                        unawaited(HapticService().lightImpact());
+                        unawaited(
+                          ref
+                              .read<FocusSessionNotifier>(
+                                focusSessionProvider.notifier,
+                              )
+                              .pauseSession(),
+                        );
+                      },
+                      onResume: () {
+                        unawaited(HapticService().lightImpact());
+                        unawaited(
+                          ref
+                              .read<FocusSessionNotifier>(
+                                focusSessionProvider.notifier,
+                              )
+                              .resumeSession(),
+                        );
+                      },
+                      onComplete: () {
+                        unawaited(HapticService().heavyImpact());
+                        unawaited(
+                          ref
+                              .read<FocusSessionNotifier>(
+                                focusSessionProvider.notifier,
+                              )
+                              .completeSession(),
+                        );
+                      },
+                      onCancel: () {
+                        unawaited(HapticService().mediumImpact());
+                        _showCancelConfirmation(context);
+                      },
+                      onStartFocusLongPress: () => _showDurationPicker(
+                        context,
+                        'Focus Duration',
+                        focusState.focusDuration,
+                        (d) => ref
+                            .read<FocusSessionNotifier>(
+                              focusSessionProvider.notifier,
+                            )
+                            .setFocusDuration(d),
+                      ),
+                      onStartShortBreakLongPress: () => _showDurationPicker(
+                        context,
+                        'Short Break Duration',
+                        focusState.shortBreakDuration,
+                        (d) => ref
+                            .read<FocusSessionNotifier>(
+                              focusSessionProvider.notifier,
+                            )
+                            .setShortBreakDuration(d),
+                      ),
+                      onStartLongBreakLongPress: () => _showDurationPicker(
+                        context,
+                        'Long Break Duration',
+                        focusState.longBreakDuration,
+                        (d) => ref
+                            .read<FocusSessionNotifier>(
+                              focusSessionProvider.notifier,
+                            )
+                            .setLongBreakDuration(d),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-
-            // Today's stats
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primaryContainer,
-                      theme.colorScheme.surface,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.3,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _StatItem(
-                        icon: Icons.check_circle_outline_rounded,
-                        label: 'Sessions',
-                        value: '${focusState.completedSessionsToday}',
-                      ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 40,
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
-                    Expanded(
-                      child: _StatItem(
-                        icon: Icons.schedule_rounded,
-                        label: 'Focus Time',
-                        value: _formatTotalTime(focusState.totalFocusTimeToday),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Quest selector
-            if (!hasActiveSession)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: QuestSelector(
-                  selectedQuest: focusState.selectedQuest,
-                  quests: questsState.value?.allActiveQuests ?? [],
-                  onQuestSelected: (quest) {
-                    ref
-                        .read<FocusSessionNotifier>(
-                          focusSessionProvider.notifier,
-                        )
-                        .selectQuest(quest);
-                  },
-                ),
-              ),
-
-            // Selected quest indicator during session
-            if (hasActiveSession && focusState.selectedQuest != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.flag_rounded,
-                        size: 20,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          focusState.selectedQuest!.title,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+            // Power saving overlay
+            if (_isPowerSaving && focusState.isTimerRunning)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TimerDisplay(
+                          session: currentSession,
+                          isRunning: focusState.isTimerRunning,
+                          isPaused: focusState.isTimerPaused,
+                          focusDuration: focusState.focusDuration,
+                          sessionColor: Colors.white,
+                          pulseController: _pulseController,
+                        ),
+                        const SizedBox(height: 32),
+                        Text(
+                          'Tap to wake',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.5),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      QuestTimeLogWidget(
-                        questId: focusState.selectedQuest!.id,
-                        compact: true,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-
-            // Timer Display
-            Expanded(
-              child: Center(
-                child: TimerDisplay(
-                  session: currentSession,
-                  isRunning: focusState.isTimerRunning,
-                  isPaused: focusState.isTimerPaused,
-                  focusDuration: focusState.focusDuration,
-                  sessionColor: sessionColor,
-                  pulseController: _pulseController,
-                ),
-              ),
-            ),
-
-            // Control Buttons
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 130),
-              child: TimerControls(
-                hasActiveSession: hasActiveSession,
-                isRunning: focusState.isTimerRunning,
-                isPaused: focusState.isTimerPaused,
-                currentSession: currentSession,
-                sessionColor: sessionColor,
-                onStartFocus: () {
-                  unawaited(HapticService().mediumImpact());
-                  unawaited(
-                    ref
-                        .read<FocusSessionNotifier>(
-                          focusSessionProvider.notifier,
-                        )
-                        .startFocusSession(
-                          questId: focusState.selectedQuestId,
-                          quest: focusState.selectedQuest,
-                        ),
-                  );
-                },
-                onStartShortBreak: () {
-                  unawaited(HapticService().lightImpact());
-                  unawaited(
-                    ref
-                        .read<FocusSessionNotifier>(
-                          focusSessionProvider.notifier,
-                        )
-                        .startBreakSession(),
-                  );
-                },
-                onStartLongBreak: () {
-                  unawaited(HapticService().lightImpact());
-                  unawaited(
-                    ref
-                        .read<FocusSessionNotifier>(
-                          focusSessionProvider.notifier,
-                        )
-                        .startBreakSession(isLongBreak: true),
-                  );
-                },
-                onPause: () {
-                  unawaited(HapticService().lightImpact());
-                  unawaited(
-                    ref
-                        .read<FocusSessionNotifier>(
-                          focusSessionProvider.notifier,
-                        )
-                        .pauseSession(),
-                  );
-                },
-                onResume: () {
-                  unawaited(HapticService().lightImpact());
-                  unawaited(
-                    ref
-                        .read<FocusSessionNotifier>(
-                          focusSessionProvider.notifier,
-                        )
-                        .resumeSession(),
-                  );
-                },
-                onComplete: () {
-                  unawaited(HapticService().heavyImpact());
-                  unawaited(
-                    ref
-                        .read<FocusSessionNotifier>(
-                          focusSessionProvider.notifier,
-                        )
-                        .completeSession(),
-                  );
-                },
-                onCancel: () {
-                  unawaited(HapticService().mediumImpact());
-                  _showCancelConfirmation(context);
-                },
-                onStartFocusLongPress: () => _showDurationPicker(
-                  context,
-                  'Focus Duration',
-                  focusState.focusDuration,
-                  (d) => ref
-                      .read<FocusSessionNotifier>(focusSessionProvider.notifier)
-                      .setFocusDuration(d),
-                ),
-                onStartShortBreakLongPress: () => _showDurationPicker(
-                  context,
-                  'Short Break Duration',
-                  focusState.shortBreakDuration,
-                  (d) => ref
-                      .read<FocusSessionNotifier>(focusSessionProvider.notifier)
-                      .setShortBreakDuration(d),
-                ),
-                onStartLongBreakLongPress: () => _showDurationPicker(
-                  context,
-                  'Long Break Duration',
-                  focusState.longBreakDuration,
-                  (d) => ref
-                      .read<FocusSessionNotifier>(focusSessionProvider.notifier)
-                      .setLongBreakDuration(d),
-                ),
-              ),
-            ),
           ],
         ),
       ),

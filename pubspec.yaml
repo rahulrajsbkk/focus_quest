@@ -49,9 +49,11 @@ dependencies:
   sleek_circular_slider: ^2.1.0
   table_calendar: ^3.2.0
   uuid: ^4.5.1
+  wakelock_plus: ^1.4.0
 
 dev_dependencies:
   build_runner: ^2.10.5
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
   freezed: ^3.2.3
@@ -106,3 +108,24 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icons/launcher_icon.png"
+  adaptive_icon_background_color: "#283228"
+  adaptive_icon_foreground: "assets/icons/launcher_foreground.png"
+  adaptive_icon_monochrome: "assets/icons/launcher_monochrome.png"
+  web:
+    generate: true
+    image_path: "assets/icons/launcher_icon.png"
+    background_color: "#283228"
+    theme_color: "#283228"
+  windows:
+    generate: true
+    image_path: "assets/icons/launcher_icon.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/icons/launcher_icon.png"
