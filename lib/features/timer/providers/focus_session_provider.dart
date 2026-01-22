@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/notification_service.dart';
+import 'package:focus_quest/core/services/sync_service.dart';
 import 'package:focus_quest/features/profile/providers/user_progress_provider.dart';
 import 'package:focus_quest/models/focus_session.dart';
 import 'package:focus_quest/models/quest.dart';
@@ -276,6 +278,8 @@ class FocusSessionNotifier extends Notifier<FocusState>
 
       _startTicking();
       unawaited(_scheduleSessionEndNotification());
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncFocusSession(session);
     } on Exception catch (e) {
       state = state.copyWith(error: 'Failed to start session: $e');
     }
@@ -311,6 +315,8 @@ class FocusSessionNotifier extends Notifier<FocusState>
 
       _startTicking();
       unawaited(_scheduleSessionEndNotification());
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncFocusSession(session);
     } on Exception catch (e) {
       state = state.copyWith(error: 'Failed to start break: $e');
     }
@@ -332,6 +338,9 @@ class FocusSessionNotifier extends Notifier<FocusState>
       state = state.copyWith(currentSession: pausedSession);
       _stopTicking();
       unawaited(NotificationService().cancelAllNotifications());
+
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncFocusSession(pausedSession);
     } on Exception catch (e) {
       state = state.copyWith(error: 'Failed to pause session: $e');
     }
@@ -353,6 +362,9 @@ class FocusSessionNotifier extends Notifier<FocusState>
       state = state.copyWith(currentSession: resumedSession);
       _startTicking();
       unawaited(_scheduleSessionEndNotification());
+
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncFocusSession(resumedSession);
     } on Exception catch (e) {
       state = state.copyWith(error: 'Failed to resume session: $e');
     }
@@ -370,6 +382,9 @@ class FocusSessionNotifier extends Notifier<FocusState>
       await _db.focusSessions
           .record(completedSession.id)
           .put(db, completedSession.toJson());
+
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncFocusSession(completedSession);
 
       // Update stats if it was a focus session
       var completedToday = state.completedSessionsToday;
@@ -435,6 +450,9 @@ class FocusSessionNotifier extends Notifier<FocusState>
       await _db.focusSessions
           .record(interruptedSession.id)
           .put(db, interruptedSession.toJson());
+
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncFocusSession(interruptedSession);
 
       state = state.copyWith(
         clearCurrentSession: true,

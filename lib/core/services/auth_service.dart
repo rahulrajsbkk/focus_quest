@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:focus_quest/core/services/firestore_service.dart';
 import 'package:focus_quest/core/services/preference_storage_service.dart';
 import 'package:focus_quest/models/app_user.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,6 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final PreferenceStorageService _prefs = PreferenceStorageService();
+  final FirestoreService _firestore = FirestoreService();
 
   static const String _kGuestUserKey = 'guest_user';
 
@@ -115,11 +117,8 @@ class AuthService {
     if (user.isGuest) {
       await _prefs.setString(_kGuestUserKey, jsonEncode(user.toJson()));
     } else {
-      // For signed in users, ideally we save these prefs to
-      // Firestore or separate local prefs. For now, we can piggyback
-      // existing PreferenceStorageService logic for "settings".
-      // But the user object itself won't be updated in Firebase Auth
-      // (except display name/photo). Here we just acknowledge the update.
+      // For signed in users, save to Firestore
+      await _firestore.saveUser(user);
     }
   }
 

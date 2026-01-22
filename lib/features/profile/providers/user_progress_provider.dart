@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/notification_service.dart';
+import 'package:focus_quest/core/services/sync_service.dart';
 import 'package:focus_quest/features/auth/providers/auth_provider.dart';
 import 'package:focus_quest/models/user_progress.dart';
 import 'package:focus_quest/services/sembast_service.dart';
@@ -34,6 +35,9 @@ class UserProgressNotifier extends AsyncNotifier<UserProgress> {
     final db = await _db.database;
     await _db.userProgress.record(_userId).put(db, progress.toJson());
     state = AsyncValue.data(progress);
+
+    // Sync to Firestore
+    await ref.read(syncServiceProvider).syncUserProgress(progress);
   }
 
   Future<void> addXp(int xp) async {

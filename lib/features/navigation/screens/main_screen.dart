@@ -1,12 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/haptic_service.dart';
+import 'package:focus_quest/core/services/sync_service.dart';
 import 'package:focus_quest/core/theme/app_colors.dart';
+import 'package:focus_quest/features/auth/providers/auth_provider.dart';
 import 'package:focus_quest/features/calendar/screens/calendar_screen.dart';
+import 'package:focus_quest/features/journal/providers/journal_provider.dart';
 import 'package:focus_quest/features/journal/screens/daily_reflection_screen.dart';
 import 'package:focus_quest/features/navigation/providers/navigation_provider.dart';
+import 'package:focus_quest/features/profile/providers/user_progress_provider.dart';
 import 'package:focus_quest/features/profile/screens/profile_screen.dart';
 import 'package:focus_quest/features/tasks/providers/date_provider.dart';
 import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
@@ -24,6 +29,27 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_initSync());
+    });
+  }
+
+  Future<void> _initSync() async {
+    final user = ref.read(authProvider).value;
+    if (user != null && user.isSyncEnabled) {
+      await ref.read(syncServiceProvider).performFullSync();
+      // Invalidate providers to force reload from Sembast
+      ref
+        ..invalidate(questListProvider)
+        ..invalidate(focusSessionProvider)
+        ..invalidate(journalProvider)
+        ..invalidate(userProgressProvider);
+    }
+  }
+
   final List<Widget> _screens = [
     const HomeScreen(),
     const CalendarScreen(),
@@ -60,6 +86,19 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final selectedIndex = ref.watch(navigationProvider);
+    final isPowerSaving = ref.watch(focusSessionProvider).isPowerSaving;
+
+    // Handle System UI (status bar) based on screen and power saving mode
+    ref
+      ..listen<bool>(
+        focusSessionProvider.select((s) => s.isPowerSaving),
+        (previous, next) {
+          _updateSystemUI(selectedIndex, next);
+        },
+      )
+      ..listen<int>(navigationProvider, (previous, next) {
+        _updateSystemUI(next, ref.read(focusSessionProvider).isPowerSaving);
+      });
 
     return Scaffold(
       body: IndexedStack(
@@ -67,7 +106,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         children: _screens,
       ),
       extendBody: true,
-      bottomNavigationBar: ref.watch(focusSessionProvider).isPowerSaving
+      bottomNavigationBar: (selectedIndex == 3 && isPowerSaving)
           ? null
           : Container(
               height: 100,
@@ -376,6 +415,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         ),
       ),
     );
+  }
+
+  void _updateSystemUI(int index, bool isPowerSaving) {
+    if (index == 3 && isPowerSaving) {
+      unawaited(
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
+      );
+    } else {
+      unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+    }
   }
 }
 

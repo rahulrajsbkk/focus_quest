@@ -4,8 +4,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:focus_quest/core/services/sync_service.dart';
 import 'package:focus_quest/features/auth/providers/auth_provider.dart';
+import 'package:focus_quest/features/journal/providers/journal_provider.dart';
 import 'package:focus_quest/features/profile/providers/user_progress_provider.dart';
+import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
+import 'package:focus_quest/features/timer/providers/focus_session_provider.dart';
 import 'package:focus_quest/models/app_user.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -22,6 +26,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _triggerFullSync() async {
+    await ref.read(syncServiceProvider).performFullSync();
+    // Invalidate all providers to refresh data from Sembast
+    ref
+      ..invalidate(questListProvider)
+      ..invalidate(focusSessionProvider)
+      ..invalidate(journalProvider)
+      ..invalidate(userProgressProvider);
   }
 
   @override
@@ -560,6 +574,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       await ref
                           .read(authProvider.notifier)
                           .updateSettings(isSyncEnabled: value);
+
+                      if (value && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Syncing with cloud...'),
+                          ),
+                        );
+                        await _triggerFullSync();
+                      }
                     }
                   },
                   secondary: Container(
@@ -602,6 +625,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: const Text('Gamification'),
                   subtitle: const Text('XP, Levels, Stats & Streaks'),
                 ),
+                if (user.isSyncEnabled) ...[
+                  Divider(
+                    height: 1,
+                    indent: 60,
+                    color: Theme.of(
+                      context,
+                    ).dividerColor.withValues(alpha: 0.2),
+                  ),
+                  ListTile(
+                    onTap: () async {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Manual sync started...')),
+                      );
+                      await _triggerFullSync();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Sync complete')),
+                        );
+                      }
+                    },
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.sync_rounded, color: Colors.blue),
+                    ),
+                    title: const Text('Sync Now'),
+                    subtitle: const Text('Manually reconcile with cloud'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                  ),
+                ],
               ],
             ),
           ),

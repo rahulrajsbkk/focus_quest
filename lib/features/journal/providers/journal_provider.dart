@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:focus_quest/core/services/sync_service.dart';
 import 'package:focus_quest/models/journal_entry.dart';
 import 'package:focus_quest/services/sembast_service.dart';
 import 'package:sembast/sembast.dart';
@@ -89,6 +90,8 @@ class JournalNotifier extends AsyncNotifier<List<JournalEntry>> {
 
     try {
       await _repository.saveEntry(entry);
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncJournalEntry(entry);
     } on Exception catch (e, stack) {
       state = AsyncError(e, stack);
       // Revert on error
@@ -106,6 +109,8 @@ class JournalNotifier extends AsyncNotifier<List<JournalEntry>> {
 
     try {
       await _repository.saveEntry(entry);
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncJournalEntry(entry);
     } on Exception catch (e, stack) {
       state = AsyncError(e, stack);
       state = AsyncData(previousState);

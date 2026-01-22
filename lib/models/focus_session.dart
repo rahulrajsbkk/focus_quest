@@ -48,6 +48,7 @@ class FocusSession {
     this.completedAt,
     this.totalPausedDuration = Duration.zero,
     this.notes,
+    this.updatedAt,
   });
 
   /// Creates a FocusSession from a JSON map.
@@ -79,6 +80,9 @@ class FocusSession {
         seconds: json['totalPausedDurationSeconds'] as int? ?? 0,
       ),
       notes: json['notes'] as String?,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'] as String)
+          : null,
     );
   }
 
@@ -99,6 +103,7 @@ class FocusSession {
       status: FocusSessionStatus.active,
       plannedDuration: plannedDuration,
       startedAt: startedAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
     );
   }
 
@@ -138,6 +143,9 @@ class FocusSession {
   /// Optional notes about the session.
   final String? notes;
 
+  /// Last update timestamp.
+  final DateTime? updatedAt;
+
   /// Converts the FocusSession to a JSON map.
   Map<String, dynamic> toJson() {
     return {
@@ -153,6 +161,7 @@ class FocusSession {
       'completedAt': completedAt?.toIso8601String(),
       'totalPausedDurationSeconds': totalPausedDuration.inSeconds,
       'notes': notes,
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
@@ -173,6 +182,7 @@ class FocusSession {
     DateTime? completedAt,
     Duration? totalPausedDuration,
     String? notes,
+    DateTime? updatedAt,
   }) {
     return FocusSession(
       id: id ?? this.id,
@@ -187,6 +197,7 @@ class FocusSession {
       completedAt: completedAt ?? this.completedAt,
       totalPausedDuration: totalPausedDuration ?? this.totalPausedDuration,
       notes: notes ?? this.notes,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -199,6 +210,7 @@ class FocusSession {
     return copyWith(
       status: FocusSessionStatus.paused,
       pausedAt: at ?? DateTime.now(),
+      updatedAt: DateTime.now(),
     );
   }
 
@@ -216,24 +228,29 @@ class FocusSession {
       resumedAt: now,
       clearPausedAt: true,
       totalPausedDuration: totalPausedDuration + pauseDuration,
+      updatedAt: now,
     );
   }
 
   /// Completes the session.
   FocusSession complete({DateTime? at, String? notes}) {
+    final now = at ?? DateTime.now();
     return copyWith(
       status: FocusSessionStatus.completed,
-      completedAt: at ?? DateTime.now(),
+      completedAt: now,
       notes: notes ?? this.notes,
+      updatedAt: now,
     );
   }
 
   /// Marks the session as interrupted.
   FocusSession interrupt({DateTime? at, String? notes}) {
+    final now = at ?? DateTime.now();
     return copyWith(
       status: FocusSessionStatus.interrupted,
-      completedAt: at ?? DateTime.now(),
+      completedAt: now,
       notes: notes ?? this.notes,
+      updatedAt: now,
     );
   }
 

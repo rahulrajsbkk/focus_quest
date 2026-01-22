@@ -154,21 +154,6 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
         if (next.isTimerRunning != previous?.isTimerRunning) {
           _resetInactivityTimer();
         }
-
-        // Handle immersive mode for power saving
-        if (next.isPowerSaving != previous?.isPowerSaving) {
-          if (next.isPowerSaving) {
-            unawaited(
-              SystemChrome.setEnabledSystemUIMode(
-                SystemUiMode.immersiveSticky,
-              ),
-            );
-          } else {
-            unawaited(
-              SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge),
-            );
-          }
-        }
       },
     );
 

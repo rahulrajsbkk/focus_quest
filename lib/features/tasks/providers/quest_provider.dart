@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:focus_quest/core/services/sync_service.dart';
 import 'package:focus_quest/models/quest.dart';
 import 'package:focus_quest/services/sembast_service.dart';
 import 'package:sembast/sembast.dart';
@@ -139,6 +140,10 @@ class QuestListNotifier extends AsyncNotifier<QuestListState> {
     state = await AsyncValue.guard(() async {
       final db = await _db.database;
       await _db.quests.record(quest.id).put(db, quest.toJson());
+
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncQuest(quest);
+
       return _loadQuests(category: currentCategory);
     });
   }
@@ -159,6 +164,9 @@ class QuestListNotifier extends AsyncNotifier<QuestListState> {
     try {
       final db = await _db.database;
       await _db.quests.record(quest.id).put(db, quest.toJson());
+
+      // Sync to Firestore
+      await ref.read(syncServiceProvider).syncQuest(quest);
     } on Exception {
       // Revert on error
       final category = currentState.selectedCategory;
@@ -295,6 +303,9 @@ class QuestListNotifier extends AsyncNotifier<QuestListState> {
     try {
       final db = await _db.database;
       await _db.quests.record(questId).delete(db);
+
+      // Sync delete to Firestore
+      await ref.read(syncServiceProvider).syncDeleteQuest(questId);
     } on Exception {
       // Revert on error
       final category = currentState.selectedCategory;
