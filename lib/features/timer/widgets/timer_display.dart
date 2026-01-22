@@ -10,6 +10,7 @@ class TimerDisplay extends StatelessWidget {
     required this.focusDuration,
     required this.sessionColor,
     required this.pulseController,
+    this.isPowerSaving = false,
     super.key,
   });
 
@@ -19,6 +20,7 @@ class TimerDisplay extends StatelessWidget {
   final Duration focusDuration;
   final Color sessionColor;
   final AnimationController pulseController;
+  final bool isPowerSaving;
 
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -55,7 +57,9 @@ class TimerDisplay extends StatelessWidget {
                   height: 260,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: theme.colorScheme.surface,
+                    color: isPowerSaving
+                        ? Colors.black
+                        : theme.colorScheme.surface,
                     boxShadow: [
                       BoxShadow(
                         color: sessionColor.withValues(
@@ -76,9 +80,9 @@ class TimerDisplay extends StatelessWidget {
                     painter: CircularProgressPainter(
                       progress: progress,
                       color: sessionColor,
-                      backgroundColor: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.1,
-                      ),
+                      backgroundColor: isPowerSaving
+                          ? Colors.transparent
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.1),
                       strokeWidth: 8,
                     ),
                   ),

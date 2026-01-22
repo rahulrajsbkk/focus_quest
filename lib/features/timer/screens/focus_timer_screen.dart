@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/haptic_service.dart';
 import 'package:focus_quest/core/services/notification_service.dart';
@@ -37,8 +38,6 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   Timer? _inactivityTimer;
-  bool _isPowerSaving = false;
-  static const _inactivityThreshold = Duration(seconds: 30);
 
   @override
   void initState() {
@@ -71,18 +70,14 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
 
   void _resetInactivityTimer() {
     _inactivityTimer?.cancel();
-    if (_isPowerSaving) {
-      setState(() {
-        _isPowerSaving = false;
-      });
+    final focusState = ref.read(focusSessionProvider);
+    if (focusState.isPowerSaving) {
+      ref.read(focusSessionProvider.notifier).setPowerSaving(value: false);
     }
 
-    final focusState = ref.read(focusSessionProvider);
     if (focusState.isTimerRunning && _isMobile) {
-      _inactivityTimer = Timer(_inactivityThreshold, () {
-        setState(() {
-          _isPowerSaving = true;
-        });
+      _inactivityTimer = Timer(focusState.powerSavingInactivityThreshold, () {
+        ref.read(focusSessionProvider.notifier).setPowerSaving(value: true);
       });
     }
   }
@@ -94,6 +89,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
     _pulseController.dispose();
     _inactivityTimer?.cancel();
     unawaited(WakelockPlus.disable());
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     super.dispose();
   }
 
@@ -157,6 +153,21 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
         // Reset inactivity timer when timer starts/stops
         if (next.isTimerRunning != previous?.isTimerRunning) {
           _resetInactivityTimer();
+        }
+
+        // Handle immersive mode for power saving
+        if (next.isPowerSaving != previous?.isPowerSaving) {
+          if (next.isPowerSaving) {
+            unawaited(
+              SystemChrome.setEnabledSystemUIMode(
+                SystemUiMode.immersiveSticky,
+              ),
+            );
+          } else {
+            unawaited(
+              SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge),
+            );
+          }
         }
       },
     );
@@ -356,6 +367,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
                         focusDuration: focusState.focusDuration,
                         sessionColor: sessionColor,
                         pulseController: _pulseController,
+                        isPowerSaving: focusState.isPowerSaving,
                       ),
                     ),
                   ),
@@ -472,7 +484,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
               ),
             ),
             // Power saving overlay
-            if (_isPowerSaving && focusState.isTimerRunning)
+            if (focusState.isPowerSaving && focusState.isTimerRunning)
               Positioned.fill(
                 child: ColoredBox(
                   color: Colors.black,
@@ -487,6 +499,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
                           focusDuration: focusState.focusDuration,
                           sessionColor: Colors.white,
                           pulseController: _pulseController,
+                          isPowerSaving: true,
                         ),
                         const SizedBox(height: 32),
                         Text(

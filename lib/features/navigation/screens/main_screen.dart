@@ -12,6 +12,7 @@ import 'package:focus_quest/features/tasks/providers/date_provider.dart';
 import 'package:focus_quest/features/tasks/providers/quest_provider.dart';
 import 'package:focus_quest/features/tasks/screens/home_screen.dart';
 import 'package:focus_quest/features/tasks/widgets/add_quest_sheet.dart';
+import 'package:focus_quest/features/timer/providers/focus_session_provider.dart';
 import 'package:focus_quest/features/timer/screens/focus_timer_screen.dart';
 import 'package:focus_quest/models/quest.dart';
 
@@ -66,53 +67,59 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         children: _screens,
       ),
       extendBody: true,
-      bottomNavigationBar: Container(
-        height: 100,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+      bottomNavigationBar: ref.watch(focusSessionProvider).isPowerSaving
+          ? null
+          : Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(
+                      0,
+                      Icons.home_rounded,
+                      Icons.home_outlined,
+                      selectedIndex,
+                    ),
+                    _buildNavItem(
+                      1,
+                      Icons.calendar_month_rounded,
+                      Icons.calendar_month_outlined,
+                      selectedIndex,
+                    ),
+                    _buildCenterButton(theme),
+                    _buildNavItem(
+                      3,
+                      Icons.timer_rounded,
+                      Icons.timer_outlined,
+                      selectedIndex,
+                    ),
+                    _buildNavItem(
+                      4,
+                      Icons.person_rounded,
+                      Icons.person_outline_rounded,
+                      selectedIndex,
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                0,
-                Icons.home_rounded,
-                Icons.home_outlined,
-                selectedIndex,
-              ),
-              _buildNavItem(
-                1,
-                Icons.calendar_month_rounded,
-                Icons.calendar_month_outlined,
-                selectedIndex,
-              ),
-              _buildCenterButton(theme),
-              _buildNavItem(
-                3,
-                Icons.timer_rounded,
-                Icons.timer_outlined,
-                selectedIndex,
-              ),
-              _buildNavItem(
-                4,
-                Icons.person_rounded,
-                Icons.person_outline_rounded,
-                selectedIndex,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

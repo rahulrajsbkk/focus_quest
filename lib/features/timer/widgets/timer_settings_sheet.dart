@@ -37,7 +37,8 @@ class TimerSettingsSheet extends ConsumerWidget {
             // Focus duration
             DurationSlider(
               label: 'Focus Duration',
-              value: focusState.focusDuration,
+              value: focusState.focusDuration.inMinutes.toDouble(),
+              displayValue: '${focusState.focusDuration.inMinutes} min',
               min: 5,
               max: 60,
               onChanged: (duration) {
@@ -51,7 +52,8 @@ class TimerSettingsSheet extends ConsumerWidget {
             // Short break duration
             DurationSlider(
               label: 'Short Break',
-              value: focusState.shortBreakDuration,
+              value: focusState.shortBreakDuration.inMinutes.toDouble(),
+              displayValue: '${focusState.shortBreakDuration.inMinutes} min',
               min: 1,
               max: 15,
               onChanged: (duration) {
@@ -65,13 +67,33 @@ class TimerSettingsSheet extends ConsumerWidget {
             // Long break duration
             DurationSlider(
               label: 'Long Break',
-              value: focusState.longBreakDuration,
+              value: focusState.longBreakDuration.inMinutes.toDouble(),
+              displayValue: '${focusState.longBreakDuration.inMinutes} min',
               min: 5,
               max: 30,
               onChanged: (duration) {
                 ref
                     .read<FocusSessionNotifier>(focusSessionProvider.notifier)
                     .setLongBreakDuration(Duration(minutes: duration.toInt()));
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Power saving delay
+            DurationSlider(
+              label: 'Go Dark Delay',
+              value: focusState.powerSavingInactivityThreshold.inSeconds
+                  .toDouble(),
+              displayValue:
+                  '${focusState.powerSavingInactivityThreshold.inSeconds} sec',
+              min: 10,
+              max: 60,
+              onChanged: (delay) {
+                ref
+                    .read<FocusSessionNotifier>(focusSessionProvider.notifier)
+                    .setPowerSavingInactivityThreshold(
+                      Duration(seconds: delay.toInt()),
+                    );
               },
             ),
 
@@ -95,6 +117,7 @@ class DurationSlider extends StatelessWidget {
   const DurationSlider({
     required this.label,
     required this.value,
+    required this.displayValue,
     required this.min,
     required this.max,
     required this.onChanged,
@@ -102,7 +125,8 @@ class DurationSlider extends StatelessWidget {
   });
 
   final String label;
-  final Duration value;
+  final double value;
+  final String displayValue;
   final double min;
   final double max;
   final void Function(double) onChanged;
@@ -124,7 +148,7 @@ class DurationSlider extends StatelessWidget {
               ),
             ),
             Text(
-              '${value.inMinutes} min',
+              displayValue,
               style: theme.textTheme.titleSmall?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -134,7 +158,7 @@ class DurationSlider extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Slider(
-          value: value.inMinutes.toDouble(),
+          value: value,
           min: min,
           max: max,
           divisions: (max - min).toInt(),

@@ -32,6 +32,8 @@ class FocusState {
     this.shortBreakDuration = PomodoroDefaults.shortBreakDuration,
     this.longBreakDuration = PomodoroDefaults.longBreakDuration,
     this.focusSessionsInCycle = 0,
+    this.isPowerSaving = false,
+    this.powerSavingInactivityThreshold = const Duration(seconds: 30),
   });
 
   final FocusSession? currentSession;
@@ -46,6 +48,8 @@ class FocusState {
   final Duration shortBreakDuration;
   final Duration longBreakDuration;
   final int focusSessionsInCycle;
+  final bool isPowerSaving;
+  final Duration powerSavingInactivityThreshold;
 
   bool get hasActiveSession =>
       currentSession != null &&
@@ -71,6 +75,8 @@ class FocusState {
     Duration? shortBreakDuration,
     Duration? longBreakDuration,
     int? focusSessionsInCycle,
+    bool? isPowerSaving,
+    Duration? powerSavingInactivityThreshold,
   }) {
     return FocusState(
       currentSession: clearCurrentSession
@@ -92,6 +98,9 @@ class FocusState {
       shortBreakDuration: shortBreakDuration ?? this.shortBreakDuration,
       longBreakDuration: longBreakDuration ?? this.longBreakDuration,
       focusSessionsInCycle: focusSessionsInCycle ?? this.focusSessionsInCycle,
+      isPowerSaving: isPowerSaving ?? this.isPowerSaving,
+      powerSavingInactivityThreshold:
+          powerSavingInactivityThreshold ?? this.powerSavingInactivityThreshold,
     );
   }
 }
@@ -464,6 +473,16 @@ class FocusSessionNotifier extends Notifier<FocusState>
   /// Update long break duration setting
   void setLongBreakDuration(Duration duration) {
     state = state.copyWith(longBreakDuration: duration);
+  }
+
+  /// Set power saving mode
+  void setPowerSaving({required bool value}) {
+    state = state.copyWith(isPowerSaving: value);
+  }
+
+  /// Set power saving inactivity threshold
+  void setPowerSavingInactivityThreshold(Duration duration) {
+    state = state.copyWith(powerSavingInactivityThreshold: duration);
   }
 
   /// Get time logged for a specific quest today
