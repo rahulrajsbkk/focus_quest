@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:focus_quest/core/services/notification_service.dart';
@@ -11,6 +12,13 @@ import 'package:focus_quest/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  try {
+    await dotenv.load();
+  } on Exception catch (e) {
+    debugPrint('Failed to load .env file: $e');
+  }
 
   // Initialize Firebase
   await Firebase.initializeApp(

@@ -12,16 +12,8 @@ class AuthService {
 
   static const String _kGuestUserKey = 'guest_user';
 
-  // Track if GoogleSignIn has been initialized
-  bool _isGoogleSignInInitialized = false;
-
-  /// Initialize Google Sign-In (must be called before using Google auth)
-  Future<void> initializeGoogleSignIn() async {
-    if (!_isGoogleSignInInitialized) {
-      await GoogleSignIn.instance.initialize();
-      _isGoogleSignInInitialized = true;
-    }
-  }
+  // GoogleSignIn v7 doesn't require explicit initialization
+  // The instance is ready to use immediately
 
   Stream<AppUser?> get authStateChanges async* {
     // Combine Firebase auth changes with local guest checks
@@ -67,16 +59,45 @@ class AuthService {
 
   Future<AppUser> signInWithGoogle() async {
     try {
-      // Ensure Google Sign-In is initialized
-      await initializeGoogleSignIn();
+      // Attempt silent sign-in / recovery
+      final googleUser = await GoogleSignIn.instance
+          .attemptLightweightAuthentication();
 
-      // Trigger the authentication flow
-      final googleUser = await GoogleSignIn.instance.authenticate();
+      // If silent sign-in failed, check if authenticate is supported
+      if (googleUser == null) {
+        // Check if authenticate is supported on this platform
+        if (GoogleSignIn.instance.supportsAuthenticate()) {
+          final authenticatedUser = await GoogleSignIn.instance.authenticate();
+          // Process the authenticated user
+          final googleAuth = authenticatedUser.authentication;
+          final credential = GoogleAuthProvider.credential(
+            idToken: googleAuth.idToken,
+          );
+          final userCredential = await _auth.signInWithCredential(credential);
+          final firebaseUser = userCredential.user!;
+          await _prefs.remove(_kGuestUserKey);
+          return _firebaseToAppUser(firebaseUser);
+        } else {
+          // On web, authenticate() is not supported
+          // User must use the sign-in button widget or FedCM flow
+          throw const GoogleSignInException(
+            code: GoogleSignInExceptionCode.canceled,
+            description:
+                'Sign-in was not completed. '
+                'On web, please use the Google Sign-In button widget.',
+          );
+        }
+      }
 
-      // Get authentication details from the GoogleSignInAccount
-      final googleAuth = googleUser.authentication;
+      final googleAccount = googleUser;
+
+      // Get authentication details
+      final googleAuth = googleAccount.authentication;
 
       // Create a new credential for Firebase
+      // Note: In v7, accessToken might be null in authentication tokens
+      // if not explicitly authorized.
+      // We start with idToken which is standard for OIDC.
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
@@ -89,9 +110,7 @@ class AuthService {
 
       return _firebaseToAppUser(user);
     } on GoogleSignInException catch (e) {
-      throw Exception(
-        'Google Sign-In error: ${e.code} - ${e.description}',
-      );
+      throw Exception('Google Sign-In error: ${e.code} - ${e.description}');
     } on FirebaseAuthException catch (e) {
       throw Exception('Firebase Auth error: ${e.message}');
     } catch (e) {
@@ -107,7 +126,11 @@ class AuthService {
 
   Future<void> signOut() async {
     await _auth.signOut();
-    await GoogleSignIn.instance.disconnect();
+    try {
+      await GoogleSignIn.instance.disconnect();
+    } on Exception catch (_) {
+      // Ignore errors during disconnect
+    }
     await _prefs.remove(_kGuestUserKey);
   }
 

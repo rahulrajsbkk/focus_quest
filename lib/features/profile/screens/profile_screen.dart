@@ -135,6 +135,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: ElevatedButton.icon(
         onPressed: () async {
           final notifier = ref.read(authProvider.notifier);
+
           await notifier.signInWithGoogle();
 
           // Check if sign-in failed
@@ -168,7 +169,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         icon: const Icon(
           Icons.g_mobiledata,
           size: 32,
-        ), // Should use Google Logo asset
+        ),
         label: const Text(
           'Continue with Google',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
