@@ -28,9 +28,31 @@ class NotificationService {
     // ITimer initialization
     tz.initializeTimeZones();
     // Handling possible type mismatch if FlutterTimezone returns TimezoneInfo
-    final dynamic localTimezone = await FlutterTimezone.getLocalTimezone();
-    final timeZoneName = localTimezone.toString();
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    var timeZoneName = 'UTC';
+    try {
+      final localTimezone = await FlutterTimezone.getLocalTimezone();
+      timeZoneName = localTimezone.toString();
+
+      // Fix for "TimezoneInfo(Asia/Calcutta, ...)" format
+      if (timeZoneName.startsWith('TimezoneInfo(')) {
+        final match = RegExp(
+          r'TimezoneInfo\(([^,]+),',
+        ).firstMatch(timeZoneName);
+        if (match != null) {
+          timeZoneName = match.group(1) ?? 'UTC';
+        }
+      }
+    } on Exception {
+      // Fallback to UTC if retrieval fails
+      timeZoneName = 'UTC';
+    }
+
+    try {
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } on Exception {
+      // Fallback to UTC if basic retrieval still fails or ID is invalid
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
 
     const initializationSettingsAndroid = AndroidInitializationSettings(
       '@mipmap/quest_icon',
