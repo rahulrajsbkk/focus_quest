@@ -215,7 +215,11 @@ class UserProgressNotifier extends AsyncNotifier<UserProgress> {
     await _recordEvent(event);
   }
 
-  Future<void> completeFocusSession(Duration duration) async {
+  Future<void> completeFocusSession(
+    Duration duration, {
+    String? questId,
+    String? subQuestId,
+  }) async {
     final user = ref.read(authProvider).value;
     if (user?.isGamificationEnabled == false) return;
 
@@ -230,6 +234,13 @@ class UserProgressNotifier extends AsyncNotifier<UserProgress> {
       occurredAt: DateTime.now(),
       metadata: {
         'durationSeconds': duration.inSeconds,
+        // The analyzer suggests null-aware elements, but explicit 'if' is
+        // clearer for map entries here
+        // ignore: use_null_aware_elements
+        if (questId != null) 'questId': questId,
+        // Same reason for subQuestId
+        // ignore: use_null_aware_elements
+        if (subQuestId != null) 'subQuestId': subQuestId,
       },
     );
 

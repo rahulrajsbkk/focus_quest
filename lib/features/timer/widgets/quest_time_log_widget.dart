@@ -28,7 +28,7 @@ class QuestTimeLogWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timeLogged = ref.watch(questTimeLoggedProvider(questId));
+    final timeLogged = ref.watch(questLifetimeFocusTimeProvider(questId));
     final theme = Theme.of(context);
 
     return timeLogged.when(

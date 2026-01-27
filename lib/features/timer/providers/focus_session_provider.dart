@@ -622,7 +622,11 @@ class FocusSessionNotifier extends Notifier<FocusState>
           unawaited(
             ref
                 .read(userProgressProvider.notifier)
-                .completeFocusSession(completedSession.elapsedDuration),
+                .completeFocusSession(
+                  completedSession.elapsedDuration,
+                  questId: completedSession.questId,
+                  subQuestId: completedSession.subQuestId,
+                ),
           );
         }
       } else {
@@ -739,6 +743,29 @@ class FocusSessionNotifier extends Notifier<FocusState>
     );
   }
 
+  /// Get total lifetime time logged for a specific quest
+  Future<Duration> getTotalTimeLoggedForQuest(String questId) async {
+    final db = await _db.database;
+
+    final finder = Finder(
+      filter: Filter.and([
+        Filter.equals('questId', questId),
+        Filter.equals('status', FocusSessionStatus.completed.name),
+        Filter.equals('type', FocusSessionType.focus.name),
+      ]),
+    );
+
+    final records = await _db.focusSessions.find(db, finder: finder);
+    final sessions = records.map(
+      (r) => FocusSession.fromJson(Map<String, dynamic>.from(r.value)),
+    );
+
+    return sessions.fold<Duration>(
+      Duration.zero,
+      (total, session) => total + session.elapsedDuration,
+    );
+  }
+
   /// Get all sessions for a specific quest today
   Future<List<FocusSession>> getSessionsForQuest(String questId) async {
     final db = await _db.database;
@@ -818,5 +845,14 @@ final questSessionsProvider = FutureProvider.family<List<FocusSession>, String>(
   (ref, questId) async {
     final notifier = ref.watch(focusSessionProvider.notifier);
     return notifier.getSessionsForQuest(questId);
+  },
+);
+
+/// Provider for getting total lifetime time logged for a specific quest
+// ignore: specify_nonobvious_property_types
+final questLifetimeFocusTimeProvider = FutureProvider.family<Duration, String>(
+  (ref, questId) async {
+    final notifier = ref.watch(focusSessionProvider.notifier);
+    return notifier.getTotalTimeLoggedForQuest(questId);
   },
 );

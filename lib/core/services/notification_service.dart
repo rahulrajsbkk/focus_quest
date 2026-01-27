@@ -27,7 +27,9 @@ class NotificationService {
   Future<void> initialize() async {
     // ITimer initialization
     tz.initializeTimeZones();
-    final timeZoneName = await FlutterTimezone.getLocalTimezone();
+    // Handling possible type mismatch if FlutterTimezone returns TimezoneInfo
+    final dynamic localTimezone = await FlutterTimezone.getLocalTimezone();
+    final timeZoneName = localTimezone.toString();
     tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     const initializationSettingsAndroid = AndroidInitializationSettings(
@@ -52,7 +54,7 @@ class NotificationService {
     );
 
     await flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse:
           (NotificationResponse notificationResponse) {
             // Handle notification tap
@@ -126,10 +128,10 @@ class NotificationService {
     );
 
     await flutterLocalNotificationsPlugin.show(
-      notificationIdTimer,
-      title,
-      body,
-      platformChannelSpecifics,
+      id: notificationIdTimer,
+      title: title,
+      body: body,
+      notificationDetails: platformChannelSpecifics,
     );
   }
 
@@ -139,11 +141,11 @@ class NotificationService {
     required String body,
   }) async {
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      notificationIdFinished,
-      title,
-      body,
-      tz.TZDateTime.from(scheduleDate, tz.local),
-      const NotificationDetails(
+      id: notificationIdFinished,
+      title: title,
+      body: body,
+      scheduledDate: tz.TZDateTime.from(scheduleDate, tz.local),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           channelIdFinished,
           channelNameFinished,
@@ -158,8 +160,6 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
@@ -170,11 +170,11 @@ class NotificationService {
     required DateTime scheduleDate,
   }) async {
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(scheduleDate, tz.local),
-      const NotificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tz.TZDateTime.from(scheduleDate, tz.local),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           channelIdFinished, // Reuse high priority channel
           channelNameFinished,
@@ -189,8 +189,6 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
@@ -226,19 +224,19 @@ class NotificationService {
     );
 
     await flutterLocalNotificationsPlugin.show(
-      id ?? DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title,
-      body,
-      platformChannelSpecifics,
+      id: id ?? DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title: title,
+      body: body,
+      notificationDetails: platformChannelSpecifics,
     );
   }
 
   Future<void> cancelNotification(int id) async {
-    await flutterLocalNotificationsPlugin.cancel(id);
+    await flutterLocalNotificationsPlugin.cancel(id: id);
   }
 
   Future<void> cancelTimerNotification() async {
-    await flutterLocalNotificationsPlugin.cancel(notificationIdTimer);
+    await flutterLocalNotificationsPlugin.cancel(id: notificationIdTimer);
   }
 
   Future<void> cancelAllNotifications() async {
