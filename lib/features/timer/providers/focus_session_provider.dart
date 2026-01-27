@@ -38,6 +38,7 @@ class FocusState {
     this.isPowerSaving = false,
     this.powerSavingInactivityThreshold = const Duration(seconds: 30),
     this.pauseOnBackground = false,
+    this.maxPauseDuration = const Duration(minutes: 2),
   });
 
   final FocusSession? currentSession;
@@ -55,6 +56,7 @@ class FocusState {
   final bool isPowerSaving;
   final Duration powerSavingInactivityThreshold;
   final bool pauseOnBackground;
+  final Duration maxPauseDuration;
 
   bool get hasActiveSession =>
       currentSession != null &&
@@ -83,6 +85,7 @@ class FocusState {
     bool? isPowerSaving,
     Duration? powerSavingInactivityThreshold,
     bool? pauseOnBackground,
+    Duration? maxPauseDuration,
   }) {
     return FocusState(
       currentSession: clearCurrentSession
@@ -108,6 +111,7 @@ class FocusState {
       powerSavingInactivityThreshold:
           powerSavingInactivityThreshold ?? this.powerSavingInactivityThreshold,
       pauseOnBackground: pauseOnBackground ?? this.pauseOnBackground,
+      maxPauseDuration: maxPauseDuration ?? this.maxPauseDuration,
     );
   }
 }
@@ -121,6 +125,7 @@ class FocusSessionNotifier extends Notifier<FocusState>
   static const String _kLongBreakDuration = 'long_break_duration_pref';
   static const String _kPauseOnBackground = 'pause_on_background_pref';
   static const String _kPowerSavingThreshold = 'power_saving_threshold_pref';
+  static const String _kMaxPauseDuration = 'max_pause_duration_pref';
 
   /// Update focus duration setting
   void setFocusDuration(Duration duration) {
@@ -154,6 +159,12 @@ class FocusSessionNotifier extends Notifier<FocusState>
   /// Set power saving inactivity threshold
   void setPowerSavingInactivityThreshold(Duration duration) {
     state = state.copyWith(powerSavingInactivityThreshold: duration);
+    unawaited(_saveSettings());
+  }
+
+  /// Set max pause duration
+  void setMaxPauseDuration(Duration duration) {
+    state = state.copyWith(maxPauseDuration: duration);
     unawaited(_saveSettings());
   }
 
@@ -222,6 +233,7 @@ class FocusSessionNotifier extends Notifier<FocusState>
         id: 999, // focusAlertId
         title: 'Focus Paused',
         body: "Your session is paused while you're away.",
+        ongoing: true,
       );
     } else {
       // Keep running (Background Timer)
@@ -253,6 +265,9 @@ class FocusSessionNotifier extends Notifier<FocusState>
   void _onForeground() {
     unawaited(
       NotificationService().cancelNotification(999),
+    );
+    unawaited(
+      NotificationService().cancelNotification(998), // Cancel pause limit alert
     );
 
     if (_wasRunningBeforeBackground) {
@@ -319,6 +334,9 @@ class FocusSessionNotifier extends Notifier<FocusState>
       powerSavingInactivityThreshold: Duration(
         seconds: prefs.getInt(_kPowerSavingThreshold) ?? 30,
       ),
+      maxPauseDuration: Duration(
+        minutes: prefs.getInt(_kMaxPauseDuration) ?? 2,
+      ),
     );
   }
 
@@ -337,6 +355,10 @@ class FocusSessionNotifier extends Notifier<FocusState>
     await prefs.setInt(
       _kPowerSavingThreshold,
       state.powerSavingInactivityThreshold.inSeconds,
+    );
+    await prefs.setInt(
+      _kMaxPauseDuration,
+      state.maxPauseDuration.inMinutes,
     );
   }
 
@@ -505,6 +527,34 @@ class FocusSessionNotifier extends Notifier<FocusState>
       _stopTicking();
       unawaited(NotificationService().cancelAllNotifications());
 
+      // Schedule pause limit notification
+      unawaited(
+        NotificationService().scheduleNotification(
+          id: 998, // Pause limit alert ID
+          title: 'Pause Limit Reached',
+          body:
+              'You have been paused for '
+              '${state.maxPauseDuration.inMinutes} minutes. Time to resume!',
+          scheduleDate: DateTime.now().add(state.maxPauseDuration),
+        ),
+      );
+
+      // Verify the ongoing pause notification logic when manually paused?
+      // The user request said:
+      // "Make the paused status show in notification non removable"
+      // This strongly implies when the app is in background OR simply when
+      // paused. If we assume the user might switch apps while paused, we
+      // should show the persistent notification here too.
+
+      unawaited(
+        NotificationService().showNotification(
+          id: 999,
+          title: 'Focus Paused',
+          body: 'Your session is currently paused.',
+          ongoing: true,
+        ),
+      );
+
       // Sync to Firestore
       await ref.read(syncServiceProvider).syncFocusSession(pausedSession);
     } on Exception catch (e) {
@@ -528,6 +578,8 @@ class FocusSessionNotifier extends Notifier<FocusState>
       state = state.copyWith(currentSession: resumedSession);
       _startTicking();
       unawaited(_scheduleSessionEndNotification());
+      unawaited(NotificationService().cancelNotification(999));
+      unawaited(NotificationService().cancelNotification(998));
 
       // Sync to Firestore
       await ref.read(syncServiceProvider).syncFocusSession(resumedSession);
@@ -589,7 +641,9 @@ class FocusSessionNotifier extends Notifier<FocusState>
       );
 
       _stopTicking();
+      _stopTicking();
       unawaited(NotificationService().cancelAllNotifications());
+      unawaited(NotificationService().cancelNotification(998));
 
       // Show completion feedback/next steps
       if (completedSession.type == FocusSessionType.focus) {
@@ -643,6 +697,7 @@ class FocusSessionNotifier extends Notifier<FocusState>
 
       _stopTicking();
       unawaited(NotificationService().cancelAllNotifications());
+      unawaited(NotificationService().cancelNotification(998));
     } on Exception catch (e) {
       state = state.copyWith(error: 'Failed to cancel session: $e');
     }

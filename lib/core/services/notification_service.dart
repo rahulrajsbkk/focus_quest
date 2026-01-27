@@ -163,13 +163,45 @@ class NotificationService {
     );
   }
 
+  Future<void> scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduleDate,
+  }) async {
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tz.TZDateTime.from(scheduleDate, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelIdFinished, // Reuse high priority channel
+          channelNameFinished,
+          channelDescription: channelDescFinished,
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentSound: true,
+          presentBanner: true,
+          presentList: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
   /// Shows a standard notification (no progress bar).
   Future<void> showNotification({
     required String title,
     required String body,
     int? id,
+    bool ongoing = false,
   }) async {
-    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    final androidPlatformChannelSpecifics = AndroidNotificationDetails(
       channelIdFinished, // Reusing high importance channel for alerts
       channelNameFinished,
       channelDescription: channelDescFinished,
@@ -177,6 +209,8 @@ class NotificationService {
       priority: Priority.high,
       playSound:
           true, // ignore: avoid_redundant_argument_values, explicit for clarity
+      ongoing: ongoing,
+      autoCancel: !ongoing,
     );
 
     const darwinPlatformChannelSpecifics = DarwinNotificationDetails(
@@ -185,7 +219,7 @@ class NotificationService {
       presentList: true,
     );
 
-    const platformChannelSpecifics = NotificationDetails(
+    final platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
       iOS: darwinPlatformChannelSpecifics,
       macOS: darwinPlatformChannelSpecifics,

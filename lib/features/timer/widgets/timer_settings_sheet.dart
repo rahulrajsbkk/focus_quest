@@ -98,6 +98,21 @@ class TimerSettingsSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
 
+            // Max Pause Duration
+            DurationSlider(
+              label: 'Max Pause',
+              value: focusState.maxPauseDuration.inMinutes.toDouble(),
+              displayValue: '${focusState.maxPauseDuration.inMinutes} min',
+              min: 1,
+              max: 15,
+              onChanged: (duration) {
+                ref
+                    .read<FocusSessionNotifier>(focusSessionProvider.notifier)
+                    .setMaxPauseDuration(Duration(minutes: duration.toInt()));
+              },
+            ),
+            const SizedBox(height: 20),
+
             // Pause on background
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
